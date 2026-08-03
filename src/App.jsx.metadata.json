@@ -1,5 +1,5 @@
 {
-  "summary": "Added B-2 Hutang Klaim report preview modal with red PDF and green Excel download buttons in src/App.jsx.",
-  "updatedAt": "2026-08-03T11:56:02.991367200Z",
+  "summary": "Removed the workflow step banner and feature cards from both Report Pelayanan sub-menus in src/App.jsx.",
+  "updatedAt": "2026-08-03T17:54:18.497469200Z",
   "userFacing": true
 }

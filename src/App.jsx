@@ -141,6 +141,83 @@ const initialClaimData = [
   }
 ];
 
+// MOCK DATA FOR AKTUARIA PARAMETERS
+const initialActuaryParameters = [
+  {
+    id: 1,
+    kode: "PAR-TA-01",
+    nama: "Pengali Formula TA (Tabungan Asuransi)",
+    kategori: "Tabungan Asuransi (TA)",
+    nilaiAwal: 1.15,
+    nilaiSaatIni: 1.15,
+    satuan: "Faktor Multiplier",
+    tglEfektif: "01-01-2026",
+    diubahOleh: "Divisi Aktuaria - Dr. Hendra",
+    status: "AKTIF"
+  },
+  {
+    id: 2,
+    kode: "PAR-NTTA-02",
+    nama: "Persentase Hak Pengali NTTA",
+    kategori: "Nilai Tunai TA (NTTA)",
+    nilaiAwal: 0.95,
+    nilaiSaatIni: 0.95,
+    satuan: "Ratio (95%)",
+    tglEfektif: "01-01-2026",
+    diubahOleh: "Divisi Aktuaria - Ratna M.",
+    status: "AKTIF"
+  },
+  {
+    id: 3,
+    kode: "PAR-NTIP-03",
+    nama: "Faktor Penyesuaian NTIP",
+    kategori: "Nilai Tunai Iuran Pensiun (NTIP)",
+    nilaiAwal: 0.75,
+    nilaiSaatIni: 0.75,
+    satuan: "Ratio (75%)",
+    tglEfektif: "01-01-2026",
+    diubahOleh: "Divisi Aktuaria - Budi S.",
+    status: "AKTIF"
+  },
+  {
+    id: 4,
+    kode: "PAR-BUNGA-04",
+    nama: "Suku Bunga Aktuarial Tahunan",
+    kategori: "Asumsi Aktuarial",
+    nilaiAwal: 4.50,
+    nilaiSaatIni: 4.50,
+    satuan: "Percent (% / Thn)",
+    tglEfektif: "01-01-2026",
+    diubahOleh: "Divisi Aktuaria - Dr. Hendra",
+    status: "AKTIF"
+  },
+  {
+    id: 5,
+    kode: "PAR-MKG-05",
+    nama: "Batas Maksimum Masa Kerja Diperhitungkan",
+    kategori: "Ketentuan Masa Kerja",
+    nilaiAwal: 360,
+    nilaiSaatIni: 360,
+    satuan: "Bulan (30 Tahun)",
+    tglEfektif: "01-01-2026",
+    diubahOleh: "Divisi Aktuaria - Ratna M.",
+    status: "AKTIF"
+  }
+];
+
+const initialAuditLogs = [
+  {
+    id: 1,
+    tgl: "03-08-2026 14:20",
+    kode: "PAR-TA-01",
+    nama: "Pengali Formula TA",
+    nilaiLama: "1.10",
+    nilaiBaru: "1.15",
+    aktor: "Divisi Aktuaria - Dr. Hendra",
+    catatan: "Penyesuaian rekomendasi aktuaria per SK Direksi No. 44/2026"
+  }
+];
+
 function formatRupiah(number) {
   return new Intl.NumberFormat("id-ID", {
     style: "currency",
@@ -163,7 +240,13 @@ function calculateBenefits(gajiPokok, masaKerjaBulan, skorsingBulan, mkgAwalTahu
 // ==========================================
 export default function App() {
   const [claims, setClaims] = useState(initialClaimData);
-  const [activePage, setActivePage] = useState('koreksi'); // 'koreksi' | 'reportHutang' | 'reportPenyelesaian'
+  const [actuaryParams, setActuaryParams] = useState(initialActuaryParameters);
+  const [auditLogs, setAuditLogs] = useState(initialAuditLogs);
+
+  // ROLE STATE: 'CSO' (CSO Kancab) | 'AKTUARIA' (Divisi Aktuaria)
+  const [userRole, setUserRole] = useState('CSO');
+
+  const [activePage, setActivePage] = useState('koreksi'); // 'koreksi' | 'reportHutang' | 'reportPenyelesaian' | 'parameterAktuaria'
   const [reportExpanded, setReportExpanded] = useState(true);
 
   // Search & Filter state for Koreksi
@@ -177,21 +260,39 @@ export default function App() {
   const [editInputValue, setEditInputValue] = useState('');
   const [toasts, setToasts] = useState([]);
 
-  // Report Hutang Klaim Form state (Gambar 1)
+  // Report Hutang Klaim Form state
   const [hutangTahun, setHutangTahun] = useState('2026');
-  const [hutangTriwulan, setHutangTriwulan] = useState('I');
+  const [hutangTriwulan, setHutangTriwulan] = useState('1');
   const [hutangKategori, setHutangKategori] = useState('Utang Klaim Tahun Lalu');
   const [hutangType, setHutangType] = useState('Rekap');
   const [filterHutangOpen, setFilterHutangOpen] = useState(true);
   const [showHutangPreviewModal, setShowHutangPreviewModal] = useState(false);
 
-  // Report Penyelesaian Klaim Form state (Gambar 2)
+  // Report Penyelesaian Klaim Form state
   const [penyelesaianTriwulan, setPenyelesaianTriwulan] = useState('1');
   const [penyelesaianType, setPenyelesaianType] = useState('Rekap');
   const [penyelesaianJenis, setPenyelesaianJenis] = useState('KLAIM DALAM PROSES AKHIR TRIWULAN/TAHUN LALU');
   const [penyelesaianTahun, setPenyelesaianTahun] = useState('2026');
   const [filterPenyelesaianOpen, setFilterPenyelesaianOpen] = useState(true);
   const [showReportPreviewModal, setShowReportPreviewModal] = useState(false);
+
+  // Parameter Edit Modal state (Divisi Aktuaria)
+  const [selectedParamId, setSelectedParamId] = useState(null);
+  const [newParamValue, setNewParamValue] = useState('');
+  const [newParamEffectiveDate, setNewParamEffectiveDate] = useState('04-08-2026');
+  const [newParamNotes, setNewParamNotes] = useState('');
+
+  // Handle Role Switching
+  const handleRoleChange = (newRole) => {
+    setUserRole(newRole);
+    if (newRole === 'CSO') {
+      if (activePage === 'parameterAktuaria') setActivePage('koreksi');
+      addToast('👤 Hak Akses Diperbarui: CSO Kancab (Akses: Koreksi Manfaat & Report Pelayanan)');
+    } else if (newRole === 'AKTUARIA') {
+      if (activePage === 'koreksi') setActivePage('parameterAktuaria');
+      addToast('🛡️ Hak Akses Diperbarui: Divisi Aktuaria (Akses: Report Pelayanan & Perubahan Parameter)');
+    }
+  };
 
   // Filtered Claims
   const filteredClaims = claims.filter(item => {
@@ -205,6 +306,7 @@ export default function App() {
   });
 
   const selectedClaim = claims.find(c => c.id === selectedClaimId);
+  const selectedParam = actuaryParams.find(p => p.id === selectedParamId);
 
   const addToast = (msg) => {
     const id = Date.now();
@@ -248,6 +350,49 @@ export default function App() {
     setSelectedClaimId(null);
   };
 
+  // Actuary Parameter Edit Submit Handler
+  const handleSaveParamEdit = (e) => {
+    e.preventDefault();
+    if (!selectedParam) return;
+
+    const valNum = parseFloat(newParamValue);
+    if (isNaN(valNum)) {
+      addToast('❌ Harap masukkan nilai angka parameter yang valid!');
+      return;
+    }
+
+    const oldVal = selectedParam.nilaiSaatIni;
+    setActuaryParams(prev => prev.map(p => {
+      if (p.id === selectedParamId) {
+        return {
+          ...p,
+          nilaiSaatIni: valNum,
+          tglEfektif: newParamEffectiveDate || '04-08-2026',
+          diubahOleh: 'Divisi Aktuaria (Anda)',
+          status: 'DIPERBARUI'
+        };
+      }
+      return p;
+    }));
+
+    // Add Audit Log
+    const newLog = {
+      id: Date.now(),
+      tgl: new Date().toLocaleString('id-ID'),
+      kode: selectedParam.kode,
+      nama: selectedParam.nama,
+      nilaiLama: oldVal.toString(),
+      nilaiBaru: valNum.toString(),
+      aktor: 'Divisi Aktuaria (Anda)',
+      catatan: newParamNotes || 'Perubahan parameter perhitungan manfaat melalui portal Aktuaria.'
+    };
+    setAuditLogs(prev => [newLog, ...prev]);
+
+    addToast(`✅ Parameter ${selectedParam.kode} (${selectedParam.nama}) berhasil diubah menjadi ${valNum}! Status perhitungan diperbarui & tercatat di Audit Log.`);
+    setSelectedParamId(null);
+    setNewParamNotes('');
+  };
+
   // Preview & Download handlers for Report Penyelesaian Klaim E-1
   const handleOpenPenyelesaianPreview = () => {
     setShowReportPreviewModal(true);
@@ -288,13 +433,15 @@ export default function App() {
 
   return (
     <div style={styles.appRoot}>
-      {/* TOP HEADER */}
+      {/* TOP HEADER WITH DYNAMIC ROLE SWITCHER DROPDOWN */}
       <header style={styles.header}>
         <div style={styles.headerLeft}>
           <div style={styles.brandBox}>A</div>
           <div>
             <div style={styles.brandTitle}>YANDU NEXTGEN ASABRI</div>
-            <div style={styles.brandSub}>CSO KANTOR CABANG</div>
+            <div style={styles.brandSub}>
+              {userRole === 'CSO' ? 'CSO KANTOR CABANG' : 'DIVISI AKTUARIA'}
+            </div>
           </div>
         </div>
 
@@ -304,36 +451,47 @@ export default function App() {
             style={styles.searchInput}
             value={searchVal} 
             onChange={(e) => setSearchVal(e.target.value)} 
-            placeholder="Cari SP / NRP / NIP / Nama Peserta..." 
+            placeholder="Cari SP / NRP / NIP / Parameter..." 
           />
         </div>
 
         <div style={styles.headerRight}>
           <div style={styles.roleBadge}>
-            <span>ROLE: CSO Kantor Cabang</span>
-            <span style={styles.rolePill}>AKSES EDIT</span>
+            <span style={{ fontSize: '11px', color: '#cbd5e1' }}>PILIH AKSES:</span>
+            <select 
+              style={styles.roleSelectDropdown}
+              value={userRole}
+              onChange={(e) => handleRoleChange(e.target.value)}
+            >
+              <option value="CSO">CSO Kancab</option>
+              <option value="AKTUARIA">Divisi Aktuaria</option>
+            </select>
           </div>
-          <div style={styles.userAvatar}>CS</div>
+          <div style={{ ...styles.userAvatar, background: userRole === 'CSO' ? '#2563eb' : '#059669' }}>
+            {userRole === 'CSO' ? 'CS' : 'DA'}
+          </div>
         </div>
       </header>
 
       <div style={styles.appLayout}>
-        {/* SIDEBAR NAVIGATION WITH REPORT PELAYANAN SUB-MENUS */}
+        {/* SIDEBAR NAVIGATION DYNAMICALLY FILTERED BY USER ROLE */}
         <aside style={styles.sidebar}>
           <div>
-            <div style={styles.sidebarSectionLabel}>PELAYANAN KANCAB</div>
+            <div style={styles.sidebarSectionLabel}>MENU APLIKASI</div>
 
-            {/* MENU 1: KOREKSI MANFAAT */}
-            <div 
-              style={activePage === 'koreksi' ? styles.sidebarNavItemActive : styles.sidebarNavItem}
-              onClick={() => setActivePage('koreksi')}
-            >
-              <span>📋 Koreksi Manfaat</span>
-              {activePage === 'koreksi' && <span style={styles.sidebarActivePill}>AKTIF</span>}
-            </div>
+            {/* MENU 1: KOREKSI MANFAAT (ONLY VISIBLE FOR CSO KANCAB) */}
+            {userRole === 'CSO' && (
+              <div 
+                style={activePage === 'koreksi' ? styles.sidebarNavItemActive : styles.sidebarNavItem}
+                onClick={() => setActivePage('koreksi')}
+              >
+                <span>📋 Koreksi Manfaat</span>
+                {activePage === 'koreksi' && <span style={styles.sidebarActivePill}>AKTIF</span>}
+              </div>
+            )}
 
-            {/* MENU 2: REPORT PELAYANAN (PARENT MENU WITH SUB-MENUS) */}
-            <div style={{ marginTop: 12 }}>
+            {/* MENU 2: REPORT PELAYANAN (VISIBLE FOR BOTH CSO & AKTUARIA) */}
+            <div style={{ marginTop: userRole === 'CSO' ? 12 : 0 }}>
               <div 
                 style={styles.sidebarParentNav}
                 onClick={() => setReportExpanded(!reportExpanded)}
@@ -345,7 +503,6 @@ export default function App() {
               {/* SUB-MENUS */}
               {reportExpanded && (
                 <div style={{ marginLeft: 12, marginTop: 4, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  {/* SUB-MENU 1: REPORT HUTANG KLAIM (GAMBAR 1) */}
                   <div 
                     style={activePage === 'reportHutang' ? styles.sidebarSubItemActive : styles.sidebarSubItem}
                     onClick={() => setActivePage('reportHutang')}
@@ -353,7 +510,6 @@ export default function App() {
                     📄 Report Hutang Klaim
                   </div>
 
-                  {/* SUB-MENU 2: REPORT PENYELESAIAN KLAIM (GAMBAR 2) */}
                   <div 
                     style={activePage === 'reportPenyelesaian' ? styles.sidebarSubItemActive : styles.sidebarSubItem}
                     onClick={() => setActivePage('reportPenyelesaian')}
@@ -363,12 +519,29 @@ export default function App() {
                 </div>
               )}
             </div>
+
+            {/* MENU 3: PERUBAHAN PARAMETER (ONLY VISIBLE FOR DIVISI AKTUARIA) */}
+            {userRole === 'AKTUARIA' && (
+              <div style={{ marginTop: 12 }}>
+                <div 
+                  style={activePage === 'parameterAktuaria' ? styles.sidebarNavItemActive : styles.sidebarNavItem}
+                  onClick={() => setActivePage('parameterAktuaria')}
+                >
+                  <span>⚙️ Perubahan Parameter</span>
+                  {activePage === 'parameterAktuaria' && <span style={styles.sidebarActivePill}>AKTIF</span>}
+                </div>
+              </div>
+            )}
           </div>
 
           <div style={styles.sidebarFooter}>
-            <div style={{ fontWeight: 'bold', fontSize: 12 }}>Akses CSO KanCab</div>
+            <div style={{ fontWeight: 'bold', fontSize: 12 }}>
+              Mode Hak Akses: {userRole === 'CSO' ? 'CSO Kancab' : 'Divisi Aktuaria'}
+            </div>
             <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
-              Menu Koreksi Manfaat & Laporan Pelayanan Resmi ASABRI.
+              {userRole === 'CSO' 
+                ? 'Menu Terbuka: Koreksi Manfaat & Report Pelayanan.' 
+                : 'Menu Terbuka: Report Pelayanan & Perubahan Parameter.'}
             </div>
           </div>
         </aside>
@@ -379,14 +552,14 @@ export default function App() {
           {/* ========================================== */}
           {/* PAGE 1: KOREKSI PERHITUNGAN MANFAAT        */}
           {/* ========================================== */}
-          {activePage === 'koreksi' && (
+          {activePage === 'koreksi' && userRole === 'CSO' && (
             <div>
               <div style={styles.pageTopBar}>
                 <div>
                   <div style={styles.breadcrumb}>Beranda &rsaquo; Pelayanan &rsaquo; Koreksi Perhitungan Manfaat</div>
                   <h1 style={styles.pageTitle}>Review & Koreksi Perhitungan Manfaat</h1>
                 </div>
-                <div style={styles.dateBox}>Senin, 03 Agustus 2026</div>
+                <div style={styles.dateBox}>Selasa, 04 Agustus 2026</div>
               </div>
 
               <div style={styles.tabBar}>
@@ -445,7 +618,7 @@ export default function App() {
                 </div>
               </div>
 
-              {/* DATA TABLE (NO STATUS COLUMN) */}
+              {/* DATA TABLE */}
               <div style={styles.tableWrap}>
                 <table style={styles.table}>
                   <thead>
@@ -459,7 +632,7 @@ export default function App() {
                       <th style={styles.th}>MANFAAT TA</th>
                       <th style={styles.th}>NTTA</th>
                       <th style={styles.th}>NTIP</th>
-                      <th style={{ ...styles.th, textAlign: 'right' }}>AKSI (CSO)</th>
+                      <th style={{ ...styles.th, textAlign: 'center' }}>AKSI</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -484,12 +657,13 @@ export default function App() {
                           <td style={styles.td}><strong>{formatRupiah(calc.ta)}</strong></td>
                           <td style={styles.td}>{formatRupiah(calc.ntta)}</td>
                           <td style={styles.td}>{formatRupiah(calc.ntip)}</td>
-                          <td style={{ ...styles.td, textAlign: 'right' }}>
+                          <td style={{ ...styles.td, textAlign: 'center' }}>
                             <button 
-                              style={styles.actionBtn}
+                              style={styles.actionBtnIcon}
+                              title="Detail & Koreksi Perhitungan Manfaat"
                               onClick={() => { setSelectedClaimId(item.id); setModalTab('profil'); }}
                             >
-                              ✏️ Detail & Koreksi
+                              ✏️
                             </button>
                           </td>
                         </tr>
@@ -502,7 +676,7 @@ export default function App() {
           )}
 
           {/* ========================================== */}
-          {/* PAGE 2: REPORT HUTANG KLAIM (GAMBAR 1)     */}
+          {/* PAGE 2: REPORT HUTANG KLAIM                */}
           {/* ========================================== */}
           {activePage === 'reportHutang' && (
             <div>
@@ -511,50 +685,66 @@ export default function App() {
                   <div style={styles.breadcrumb}>Beranda &rsaquo; Pelayanan &rsaquo; Report Pelayanan &rsaquo; Report Hutang Klaim</div>
                   <h1 style={styles.pageTitle}>Report Hutang Klaim</h1>
                 </div>
-                <div style={styles.dateBox}>Senin, 03 Agustus 2026</div>
+                <div style={styles.dateBox}>Selasa, 04 Agustus 2026</div>
               </div>
 
-              <div style={styles.reportCardWrapper}>
-                <div style={styles.filterCardBox}>
+              {/* MODERN FILTER CARD CONTAINER */}
+              <div style={styles.modernCardContainer}>
+                <div style={styles.modernFilterCard}>
                   <div 
-                    style={styles.filterBarHeader}
+                    style={styles.modernFilterHeader}
                     onClick={() => setFilterHutangOpen(!filterHutangOpen)}
                   >
-                    <span>▸ Filter</span>
-                    <span style={{ fontSize: 12 }}>{filterHutangOpen ? '▲' : '▼'}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ fontWeight: '700', fontSize: '14px', letterSpacing: '0.3px' }}>
+                        🔍 Filter Data
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <span style={styles.modernFilterTag}>Triwulan {hutangTriwulan} • {hutangTahun}</span>
+                      <span style={{ fontSize: '12px', transition: 'transform 0.2s' }}>{filterHutangOpen ? '▲' : '▼'}</span>
+                    </div>
                   </div>
 
                   {filterHutangOpen && (
-                    <div style={styles.filterBarBody}>
-                      <div style={styles.formGrid3}>
-                        <div style={styles.formFieldGroup}>
-                          <label style={styles.formLabel}>Tahun</label>
-                          <input 
-                            type="text" 
-                            style={styles.formControlInput}
-                            value={hutangTahun} 
-                            onChange={(e) => setHutangTahun(e.target.value)} 
-                          />
-                        </div>
-
-                        <div style={styles.formFieldGroup}>
-                          <label style={styles.formLabel}>Triwulan</label>
+                    <div style={styles.modernFilterBody}>
+                      <div style={styles.modernControlsGrid}>
+                        <div style={styles.modernFieldGroup}>
+                          <label style={styles.modernLabel}>
+                            <span>📅 Triwulan</span>
+                          </label>
                           <select 
-                            style={styles.formControlSelect}
+                            style={styles.modernSelect}
                             value={hutangTriwulan}
                             onChange={(e) => setHutangTriwulan(e.target.value)}
                           >
-                            <option value="I">I</option>
-                            <option value="II">II</option>
-                            <option value="III">III</option>
-                            <option value="IV">IV</option>
+                            <option value="1">Triwulan 1 (I)</option>
+                            <option value="2">Triwulan 2 (II)</option>
+                            <option value="3">Triwulan 3 (III)</option>
+                            <option value="4">Triwulan 4 (IV)</option>
                           </select>
                         </div>
 
-                        <div style={styles.formFieldGroup}>
-                          <label style={styles.formLabel}>Kategori</label>
+                        <div style={styles.modernFieldGroup}>
+                          <label style={styles.modernLabel}>
+                            <span>📊 Tipe Laporan</span>
+                          </label>
                           <select 
-                            style={styles.formControlSelect}
+                            style={styles.modernSelect}
+                            value={hutangType}
+                            onChange={(e) => setHutangType(e.target.value)}
+                          >
+                            <option value="Rekap">Rekapitulasi</option>
+                            <option value="Detail">Rincian Detail</option>
+                          </select>
+                        </div>
+
+                        <div style={styles.modernFieldGroup}>
+                          <label style={styles.modernLabel}>
+                            <span>📋 Kategori Utang</span>
+                          </label>
+                          <select 
+                            style={styles.modernSelect}
                             value={hutangKategori}
                             onChange={(e) => setHutangKategori(e.target.value)}
                           >
@@ -564,79 +754,48 @@ export default function App() {
                           </select>
                         </div>
 
-                        <div style={styles.formFieldGroup}>
-                          <label style={styles.formLabel}>Type</label>
-                          <select 
-                            style={styles.formControlSelect}
-                            value={hutangType}
-                            onChange={(e) => setHutangType(e.target.value)}
-                          >
-                            <option value="Rekap">Rekap</option>
-                            <option value="Detail">Detail</option>
-                          </select>
+                        <div style={styles.modernFieldGroup}>
+                          <label style={styles.modernLabel}>
+                            <span>🗓️ Tahun Periode</span>
+                          </label>
+                          <input 
+                            type="number" 
+                            style={styles.modernInput}
+                            value={hutangTahun} 
+                            onChange={(e) => setHutangTahun(e.target.value)} 
+                          />
                         </div>
                       </div>
 
-                      {/* ACTION CETAK BUTTON (OPENS OFFICIAL B-2 PREVIEW MODAL) */}
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
-                        <button 
-                          style={styles.btnCetak}
-                          onClick={handleOpenHutangPreview}
-                        >
-                          🔍 Cetak
-                        </button>
+                      <div style={{ ...styles.modernActionBar, justifyContent: 'flex-end' }}>
+                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                          <button 
+                            type="button"
+                            style={styles.btnIconResetModern}
+                            title="Reset Filter"
+                            onClick={() => { setHutangTriwulan('1'); setHutangTahun('2026'); setHutangType('Rekap'); setHutangKategori('Utang Klaim Tahun Lalu'); addToast('🔄 Filter berhasil di-reset!'); }}
+                          >
+                            🔄
+                          </button>
+
+                          <button 
+                            type="button"
+                            style={styles.btnPrimaryModern}
+                            onClick={handleOpenHutangPreview}
+                          >
+                            🔍 Preview & Cetak Laporan
+                          </button>
+                        </div>
                       </div>
                     </div>
                   )}
-                </div>
-
-                <div style={{ marginTop: 24 }}>
-                  <div style={{ fontSize: 13, fontWeight: 'bold', color: '#0b1329', marginBottom: 8 }}>
-                    📋 Preview Hasil Laporan Hutang Klaim ({hutangKategori} - Triwulan {hutangTriwulan} {hutangTahun})
-                  </div>
-                  <div style={styles.tableWrap}>
-                    <table style={styles.table}>
-                      <thead>
-                        <tr style={styles.thRow}>
-                          <th style={styles.th}>NO</th>
-                          <th style={styles.th}>JENIS KLAIM</th>
-                          <th style={styles.th}>JUMLAH SP</th>
-                          <th style={styles.th}>TOTAL NOMINAL UTANG</th>
-                          <th style={styles.th}>STATUS PROSES</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr style={styles.tr}>
-                          <td style={styles.td}>1</td>
-                          <td style={styles.td}><strong>Tabungan Asuransi (TA)</strong></td>
-                          <td style={styles.td}>4 SP</td>
-                          <td style={styles.td}><strong>Rp 842.500.000</strong></td>
-                          <td style={styles.td}><span style={styles.badge}>Diverifikasi CSO</span></td>
-                        </tr>
-                        <tr style={styles.tr}>
-                          <td style={styles.td}>2</td>
-                          <td style={styles.td}><strong>Nilai Tunai TA (NTTA)</strong></td>
-                          <td style={styles.td}>2 SP</td>
-                          <td style={styles.td}><strong>Rp 410.200.000</strong></td>
-                          <td style={styles.td}><span style={styles.badge}>Proses Pembayaran</span></td>
-                        </tr>
-                        <tr style={styles.tr}>
-                          <td style={styles.td}>3</td>
-                          <td style={styles.td}><strong>Nilai Tunai Iuran Pensiun (NTIP)</strong></td>
-                          <td style={styles.td}>2 SP</td>
-                          <td style={styles.td}><strong>Rp 340.800.000</strong></td>
-                          <td style={styles.td}><span style={styles.badge}>Pending SKEP</span></td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
                 </div>
               </div>
             </div>
           )}
 
           {/* ========================================== */}
-          {/* PAGE 3: REPORT PENYELESAIAN KLAIM (GAMBAR 2) */}
+          {/* PAGE 3: REPORT PENYELESAIAN KLAIM          */}
           {/* ========================================== */}
           {activePage === 'reportPenyelesaian' && (
             <div>
@@ -645,52 +804,66 @@ export default function App() {
                   <div style={styles.breadcrumb}>Beranda &rsaquo; Pelayanan &rsaquo; Report Pelayanan &rsaquo; Report Penyelesaian Klaim</div>
                   <h1 style={styles.pageTitle}>Report Penyelesaian Klaim</h1>
                 </div>
-                <div style={styles.dateBox}>Senin, 03 Agustus 2026</div>
+                <div style={styles.dateBox}>Selasa, 04 Agustus 2026</div>
               </div>
 
-              <div style={styles.reportCardWrapper}>
-                <div style={styles.filterCardBox}>
+              {/* MODERN FILTER CARD CONTAINER */}
+              <div style={styles.modernCardContainer}>
+                <div style={styles.modernFilterCard}>
                   <div 
-                    style={styles.filterBarHeader}
+                    style={styles.modernFilterHeader}
                     onClick={() => setFilterPenyelesaianOpen(!filterPenyelesaianOpen)}
                   >
-                    <span>▸ Filter</span>
-                    <span style={{ fontSize: 12 }}>{filterPenyelesaianOpen ? '▲' : '▼'}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ fontWeight: '700', fontSize: '14px', letterSpacing: '0.3px' }}>
+                        🔍 Filter Data
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <span style={styles.modernFilterTag}>Triwulan {penyelesaianTriwulan} • {penyelesaianTahun}</span>
+                      <span style={{ fontSize: '12px', transition: 'transform 0.2s' }}>{filterPenyelesaianOpen ? '▲' : '▼'}</span>
+                    </div>
                   </div>
 
                   {filterPenyelesaianOpen && (
-                    <div style={styles.filterBarBody}>
-                      <div style={styles.formGrid3}>
-                        <div style={styles.formFieldGroup}>
-                          <label style={styles.formLabel}>Triwulan</label>
+                    <div style={styles.modernFilterBody}>
+                      <div style={styles.modernControlsGrid}>
+                        <div style={styles.modernFieldGroup}>
+                          <label style={styles.modernLabel}>
+                            <span>📅 Triwulan</span>
+                          </label>
                           <select 
-                            style={styles.formControlSelect}
+                            style={styles.modernSelect}
                             value={penyelesaianTriwulan}
                             onChange={(e) => setPenyelesaianTriwulan(e.target.value)}
                           >
-                            <option value="1">1</option>
-                            <option value="2">2</option>
-                            <option value="3">3</option>
-                            <option value="4">4</option>
+                            <option value="1">Triwulan 1 (I)</option>
+                            <option value="2">Triwulan 2 (II)</option>
+                            <option value="3">Triwulan 3 (III)</option>
+                            <option value="4">Triwulan 4 (IV)</option>
                           </select>
                         </div>
 
-                        <div style={styles.formFieldGroup}>
-                          <label style={styles.formLabel}>Type</label>
+                        <div style={styles.modernFieldGroup}>
+                          <label style={styles.modernLabel}>
+                            <span>📊 Tipe Laporan</span>
+                          </label>
                           <select 
-                            style={styles.formControlSelect}
+                            style={styles.modernSelect}
                             value={penyelesaianType}
                             onChange={(e) => setPenyelesaianType(e.target.value)}
                           >
-                            <option value="Rekap">Rekap</option>
-                            <option value="Detail">Detail</option>
+                            <option value="Rekap">Rekapitulasi</option>
+                            <option value="Detail">Rincian Detail</option>
                           </select>
                         </div>
 
-                        <div style={{ ...styles.formFieldGroup, gridColumn: 'span 2' }}>
-                          <label style={styles.formLabel}>Jenis</label>
+                        <div style={{ ...styles.modernFieldGroup, gridColumn: 'span 2' }}>
+                          <label style={styles.modernLabel}>
+                            <span>📋 Status Jenis Klaim</span>
+                          </label>
                           <select 
-                            style={styles.formControlSelect}
+                            style={styles.modernSelect}
                             value={penyelesaianJenis}
                             onChange={(e) => setPenyelesaianJenis(e.target.value)}
                           >
@@ -703,56 +876,167 @@ export default function App() {
                           </select>
                         </div>
 
-                        <div style={styles.formFieldGroup}>
-                          <label style={styles.formLabel}>Tahun</label>
+                        <div style={styles.modernFieldGroup}>
+                          <label style={styles.modernLabel}>
+                            <span>🗓️ Tahun Periode</span>
+                          </label>
                           <input 
-                            type="text" 
-                            style={styles.formControlInput}
+                            type="number" 
+                            style={styles.modernInput}
                             value={penyelesaianTahun} 
                             onChange={(e) => setPenyelesaianTahun(e.target.value)} 
                           />
                         </div>
                       </div>
 
-                      {/* ACTION CETAK BUTTON (OPENS OFFICIAL E-1 PREVIEW MODAL) */}
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
-                        <button 
-                          style={styles.btnCetak}
-                          onClick={handleOpenPenyelesaianPreview}
-                        >
-                          🔍 Cetak
-                        </button>
+                      <div style={{ ...styles.modernActionBar, justifyContent: 'flex-end' }}>
+                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                          <button 
+                            type="button"
+                            style={styles.btnIconResetModern}
+                            title="Reset Filter"
+                            onClick={() => { setPenyelesaianTriwulan('1'); setPenyelesaianTahun('2026'); setPenyelesaianType('Rekap'); setPenyelesaianJenis('KLAIM DALAM PROSES AKHIR TRIWULAN/TAHUN LALU'); addToast('🔄 Filter berhasil di-reset!'); }}
+                          >
+                            🔄
+                          </button>
+
+                          <button 
+                            type="button"
+                            style={styles.btnPrimaryModern}
+                            onClick={handleOpenPenyelesaianPreview}
+                          >
+                            🔍 Preview & Cetak Laporan
+                          </button>
+                        </div>
                       </div>
                     </div>
                   )}
                 </div>
+              </div>
+            </div>
+          )}
 
-                <div style={{ marginTop: 24 }}>
-                  <div style={{ fontSize: 13, fontWeight: 'bold', color: '#0b1329', marginBottom: 8 }}>
-                    📋 Preview Laporan Penyelesaian Pelayanan ({penyelesaianJenis})
+          {/* ========================================================= */}
+          {/* PAGE 4: PERUBAHAN PARAMETER PERHITUNGAN MANFAAT (AKTUARIA) */}
+          {/* ========================================================= */}
+          {activePage === 'parameterAktuaria' && userRole === 'AKTUARIA' && (
+            <div>
+              <div style={styles.pageTopBar}>
+                <div>
+                  <div style={styles.breadcrumb}>Beranda &rsaquo; Aktuaria &rsaquo; Perubahan Parameter Perhitungan Manfaat</div>
+                  <h1 style={styles.pageTitle}>Perubahan Parameter Perhitungan Manfaat</h1>
+                </div>
+                <div style={styles.dateBox}>Selasa, 04 Agustus 2026</div>
+              </div>
+
+              {/* TABLE DAFTAR PARAMETER */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <h3 style={{ fontSize: 15, fontWeight: 'bold', color: '#0f172a' }}>
+                    📋 Daftar Parameter Perhitungan Manfaat ({actuaryParams.length} Parameter Aktif)
+                  </h3>
+                  <div style={{ fontSize: 12, color: '#64748b' }}>
+                    Hak Akses Edit: <strong>Divisi Aktuaria</strong>
                   </div>
-                  <div style={styles.tableWrap}>
-                    <table style={styles.table}>
-                      <thead>
-                        <tr style={styles.thRow}>
-                          <th style={styles.th}>NO</th>
-                          <th style={styles.th}>KATEGORI STATUS</th>
-                          <th style={styles.th}>JUMLAH DOKUMEN</th>
-                          <th style={styles.th}>TOTAL MANFAAT</th>
-                          <th style={styles.th}>PERSENTASE SELESAI</th>
+                </div>
+
+                <div style={styles.tableWrap}>
+                  <table style={styles.table}>
+                    <thead>
+                      <tr style={styles.thRow}>
+                        <th style={styles.th}>KODE PARAMETER</th>
+                        <th style={styles.th}>NAMA PARAMETER</th>
+                        <th style={styles.th}>KATEGORI PROGRAM</th>
+                        <th style={styles.th}>NILAI SAAT INI</th>
+                        <th style={styles.th}>SATUAN / FORMAT</th>
+                        <th style={styles.th}>TGL EFEKTIF</th>
+                        <th style={styles.th}>TERAKHIR DIUBAH OLEH</th>
+                        <th style={styles.th}>STATUS</th>
+                        <th style={{ ...styles.th, textAlign: 'center' }}>AKSI</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {actuaryParams.map(param => (
+                        <tr key={param.id} style={styles.tr}>
+                          <td style={styles.td}><strong>{param.kode}</strong></td>
+                          <td style={styles.td}>
+                            <div style={{ fontWeight: 'bold', color: '#0f172a' }}>{param.nama}</div>
+                          </td>
+                          <td style={styles.td}><span style={styles.badge}>{param.kategori}</span></td>
+                          <td style={styles.td}>
+                            <span style={{ fontSize: 14, fontWeight: 'bold', color: '#2563eb' }}>
+                              {param.nilaiSaatIni}
+                            </span>
+                          </td>
+                          <td style={styles.td}>{param.satuan}</td>
+                          <td style={styles.td}>{param.tglEfektif}</td>
+                          <td style={styles.td}><span style={{ fontSize: 11, color: '#475569' }}>{param.diubahOleh}</span></td>
+                          <td style={styles.td}>
+                            <span style={{ 
+                              background: param.status === 'DIPERBARUI' ? '#dcfce7' : '#e0f2fe', 
+                              color: param.status === 'DIPERBARUI' ? '#15803d' : '#0369a1',
+                              padding: '3px 8px', borderRadius: '4px', fontWeight: 'bold', fontSize: '11px' 
+                            }}>
+                              {param.status}
+                            </span>
+                          </td>
+                          <td style={{ ...styles.td, textAlign: 'center' }}>
+                            <button 
+                              style={styles.actionBtnParamIcon}
+                              title="Ubah Parameter Perhitungan Manfaat"
+                              onClick={() => {
+                                setSelectedParamId(param.id);
+                                setNewParamValue(param.nilaiSaatIni.toString());
+                                setNewParamEffectiveDate('04-08-2026');
+                                setNewParamNotes('');
+                              }}
+                            >
+                              ⚙️
+                            </button>
+                          </td>
                         </tr>
-                      </thead>
-                      <tbody>
-                        <tr style={styles.tr}>
-                          <td style={styles.td}>1</td>
-                          <td style={styles.td}><strong>{penyelesaianJenis}</strong></td>
-                          <td style={styles.td}>12 Dokumen</td>
-                          <td style={styles.td}><strong>Rp 1.593.500.000</strong></td>
-                          <td style={styles.td}><span style={{ color: '#16a34a', fontWeight: 'bold' }}>100% Selesai</span></td>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* AUDIT LOG SECTION */}
+              <div style={{ marginTop: 32 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: 12 }}>
+                  <h3 style={{ fontSize: 15, fontWeight: 'bold', color: '#0f172a' }}>
+                    📜 Log Audit & Histori Perubahan Parameter Perhitungan Manfaat
+                  </h3>
+                  <span style={styles.auditBadgePill}>{auditLogs.length} Riwayat</span>
+                </div>
+
+                <div style={styles.tableWrap}>
+                  <table style={styles.table}>
+                    <thead>
+                      <tr style={styles.thRow}>
+                        <th style={styles.th}>WAKTU (TIMESTAMP)</th>
+                        <th style={styles.th}>KODE PARAMETER</th>
+                        <th style={styles.th}>NAMA PARAMETER</th>
+                        <th style={styles.th}>NILAI LAMA</th>
+                        <th style={styles.th}>NILAI BARU</th>
+                        <th style={styles.th}>AKTOR (USER)</th>
+                        <th style={styles.th}>JUSTIFIKASI / CATATAN AUDIT</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {auditLogs.map(log => (
+                        <tr key={log.id} style={styles.tr}>
+                          <td style={styles.td}><span style={{ fontSize: 11, color: '#64748b' }}>{log.tgl}</span></td>
+                          <td style={styles.td}><strong>{log.kode}</strong></td>
+                          <td style={styles.td}>{log.nama}</td>
+                          <td style={{ ...styles.td, color: '#dc2626', textDecoration: 'line-through' }}>{log.nilaiLama}</td>
+                          <td style={{ ...styles.td, color: '#16a34a', fontWeight: 'bold' }}>{log.nilaiBaru}</td>
+                          <td style={styles.td}><strong>{log.aktor}</strong></td>
+                          <td style={styles.td}><span style={{ fontSize: 12, color: '#334155' }}>{log.catatan}</span></td>
                         </tr>
-                      </tbody>
-                    </table>
-                  </div>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>
@@ -762,7 +1046,96 @@ export default function App() {
       </div>
 
       {/* ========================================================= */}
-      {/* MODAL PREVIEW LAPORAN UTANG KLAIM B-2 (DENGAN REKAP DATA)  */}
+      {/* MODAL FORM PERUBAHAN PARAMETER PERHITUNGAN (DIVISI AKTUARIA) */}
+      {/* ========================================================= */}
+      {selectedParam && (
+        <div style={styles.modalBackdrop}>
+          <div style={styles.subModalContainer}>
+            <div style={styles.subModalHeader}>
+              <div>
+                <div style={{ fontSize: 10, color: '#f59e0b', fontWeight: 'bold' }}>MODUL DIVISI AKTUARIA</div>
+                <h3 style={{ fontSize: 15, color: '#fff', marginTop: 2 }}>⚙️ Form Perubahan Parameter — {selectedParam.kode}</h3>
+              </div>
+              <button style={styles.closeBtn} onClick={() => setSelectedParamId(null)}>✕</button>
+            </div>
+
+            <form onSubmit={handleSaveParamEdit}>
+              <div style={{ padding: '20px', backgroundColor: '#ffffff' }}>
+                <div style={styles.bannerTitle}>
+                  Penyesuaian Parameter: <strong>{selectedParam.nama}</strong>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: 16 }}>
+                  <div style={styles.paramDetailBox}>
+                    <div style={{ fontSize: 10, color: '#64748b', fontWeight: 'bold' }}>KATEGORI</div>
+                    <div style={{ fontSize: 12, fontWeight: 'bold', color: '#0f172a' }}>{selectedParam.kategori}</div>
+                  </div>
+                  <div style={styles.paramDetailBox}>
+                    <div style={{ fontSize: 10, color: '#64748b', fontWeight: 'bold' }}>NILAI SAAT INI</div>
+                    <div style={{ fontSize: 14, fontWeight: 'bold', color: '#2563eb' }}>{selectedParam.nilaiSaatIni} {selectedParam.satuan}</div>
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: 14 }}>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 'bold', marginBottom: 6, color: '#1e293b' }}>
+                    Nilai Parameter Baru:
+                  </label>
+                  <input 
+                    type="number"
+                    step="0.01"
+                    style={styles.editInput}
+                    value={newParamValue}
+                    onChange={(e) => setNewParamValue(e.target.value)}
+                    required
+                    autoFocus
+                  />
+                  <small style={{ color: '#64748b', fontSize: 11, marginTop: 4, display: 'block' }}>
+                    Format Satuan: {selectedParam.satuan}
+                  </small>
+                </div>
+
+                <div style={{ marginBottom: 14 }}>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 'bold', marginBottom: 6, color: '#1e293b' }}>
+                    Tanggal Efektif Berlaku:
+                  </label>
+                  <input 
+                    type="text"
+                    style={styles.modernInput}
+                    value={newParamEffectiveDate}
+                    onChange={(e) => setNewParamEffectiveDate(e.target.value)}
+                    placeholder="DD-MM-YYYY"
+                    required
+                  />
+                </div>
+
+                <div style={{ marginBottom: 14 }}>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 'bold', marginBottom: 6, color: '#1e293b' }}>
+                    Landasan / Catatan Audit Log Perubahan:
+                  </label>
+                  <textarea 
+                    style={styles.paramTextarea}
+                    value={newParamNotes}
+                    onChange={(e) => setNewParamNotes(e.target.value)}
+                    placeholder="Contoh: Penyesuaian kriteria aktuarial per SK Direksi / Evaluasi Triwulan 2026..."
+                    rows={3}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div style={styles.modalFooter}>
+                <button type="button" style={styles.secBtn} onClick={() => setSelectedParamId(null)}>Batal</button>
+                <button type="submit" style={styles.priBtn}>
+                  💾 Menyimpan Perubahan Parameter
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* MODAL PREVIEW LAPORAN UTANG KLAIM B-2                      */}
       {/* ========================================================= */}
       {showHutangPreviewModal && (
         <div style={styles.modalBackdrop}>
@@ -776,7 +1149,6 @@ export default function App() {
             </div>
 
             <div style={{ padding: '24px', overflowY: 'auto', flex: 1, backgroundColor: '#ffffff' }}>
-              {/* OFFICIAL B-2 REPORT HEADER (CENTER ALIGNED EXACTLY AS SCREENSHOT B-2) */}
               <div style={{ textAlign: 'center', marginBottom: 20, fontFamily: 'Arial, sans-serif' }}>
                 <div style={{ fontSize: 13, fontWeight: 'bold' }}>PENGELOLA PROGRAM</div>
                 <div style={{ fontSize: 13, fontWeight: 'bold' }}>LAPORAN PENYELENGGARAAN PROGRAM</div>
@@ -787,7 +1159,6 @@ export default function App() {
                 <div style={{ fontSize: 12, fontWeight: 'bold', marginTop: 2 }}>PERIODE TRIWULAN : {hutangTriwulan} TAHUN {hutangTahun}</div>
               </div>
 
-              {/* OFFICIAL EXCEL FORMAT B-2 MULTI-COLUMN TABLE */}
               <div style={{ overflowX: 'auto', border: '1px solid #000' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10px', textAlign: 'center', fontFamily: 'Arial, sans-serif' }}>
                   <thead>
@@ -806,7 +1177,6 @@ export default function App() {
                       <th style={styles.thExcel}>JML PESERTA</th><th style={styles.thExcel}>RP JUTA</th>
                       <th style={styles.thExcel}>JML PESERTA</th><th style={styles.thExcel}>RP JUTA</th>
                     </tr>
-                    {/* FORMULA / NUMBERING ROW */}
                     <tr style={{ backgroundColor: '#e2e8f0', fontSize: '9px', fontWeight: 'bold' }}>
                       <td style={styles.tdExcel}>1</td>
                       <td style={styles.tdExcel}>2</td>
@@ -837,19 +1207,6 @@ export default function App() {
                     <tr>
                       <td style={styles.tdExcel}>PP67</td>
                       <td style={styles.tdExcel}>THT</td>
-                      <td style={{ ...styles.tdExcel, textAlign: 'left', fontWeight: 'bold' }}>SNTA</td>
-                      <td style={styles.tdExcel}>-</td>
-                      <td style={styles.tdExcel}>-</td>
-                      <td style={styles.tdExcel}>-</td>
-                      <td style={styles.tdExcel}>-</td>
-                      <td style={styles.tdExcel}>-</td>
-                      <td style={styles.tdExcel}>-</td>
-                      <td style={styles.tdExcel}>0</td>
-                      <td style={styles.tdExcel}>0</td>
-                    </tr>
-                    <tr>
-                      <td style={styles.tdExcel}>PP67</td>
-                      <td style={styles.tdExcel}>THT</td>
                       <td style={{ ...styles.tdExcel, textAlign: 'left', fontWeight: 'bold' }}>SNTA BERHENTI TANPA HAK PENSIUN</td>
                       <td style={styles.tdExcel}>12</td>
                       <td style={styles.tdExcel}>90.592.400</td>
@@ -860,99 +1217,18 @@ export default function App() {
                       <td style={styles.tdExcel}>12</td>
                       <td style={styles.tdExcel}>90.592.400</td>
                     </tr>
-                    <tr>
-                      <td style={styles.tdExcel}>PP67</td>
-                      <td style={styles.tdExcel}>THT</td>
-                      <td style={{ ...styles.tdExcel, textAlign: 'left', fontWeight: 'bold' }}>SNTA BERHENTI DGN HAK TUNJANGAN</td>
-                      <td style={styles.tdExcel}>-</td>
-                      <td style={styles.tdExcel}>-</td>
-                      <td style={styles.tdExcel}>-</td>
-                      <td style={styles.tdExcel}>-</td>
-                      <td style={styles.tdExcel}>-</td>
-                      <td style={styles.tdExcel}>-</td>
-                      <td style={styles.tdExcel}>0</td>
-                      <td style={styles.tdExcel}>0</td>
-                    </tr>
-                    <tr>
-                      <td style={styles.tdExcel}>PP67</td>
-                      <td style={styles.tdExcel}>THT</td>
-                      <td style={{ ...styles.tdExcel, textAlign: 'left', fontWeight: 'bold' }}>SRK/SNTA</td>
-                      <td style={styles.tdExcel}>-</td>
-                      <td style={styles.tdExcel}>-</td>
-                      <td style={styles.tdExcel}>-</td>
-                      <td style={styles.tdExcel}>-</td>
-                      <td style={styles.tdExcel}>-</td>
-                      <td style={styles.tdExcel}>-</td>
-                      <td style={styles.tdExcel}>0</td>
-                      <td style={styles.tdExcel}>0</td>
-                    </tr>
-                    <tr>
-                      <td style={styles.tdExcel}>PP67</td>
-                      <td style={styles.tdExcel}>THT</td>
-                      <td style={{ ...styles.tdExcel, textAlign: 'left', fontWeight: 'bold' }}>SBP</td>
-                      <td style={styles.tdExcel}>3</td>
-                      <td style={styles.tdExcel}>8.000.000</td>
-                      <td style={styles.tdExcel}>-</td>
-                      <td style={styles.tdExcel}>-</td>
-                      <td style={styles.tdExcel}>-</td>
-                      <td style={styles.tdExcel}>-</td>
-                      <td style={styles.tdExcel}>3</td>
-                      <td style={styles.tdExcel}>8.000.000</td>
-                    </tr>
-                    <tr>
-                      <td style={styles.tdExcel}>PP67</td>
-                      <td style={styles.tdExcel}>THT</td>
-                      <td style={{ ...styles.tdExcel, textAlign: 'left', fontWeight: 'bold' }}>SBP1/S</td>
-                      <td style={styles.tdExcel}>-</td>
-                      <td style={styles.tdExcel}>-</td>
-                      <td style={styles.tdExcel}>-</td>
-                      <td style={styles.tdExcel}>-</td>
-                      <td style={styles.tdExcel}>-</td>
-                      <td style={styles.tdExcel}>-</td>
-                      <td style={styles.tdExcel}>0</td>
-                      <td style={styles.tdExcel}>0</td>
-                    </tr>
-                    <tr>
-                      <td style={styles.tdExcel}>PP67</td>
-                      <td style={styles.tdExcel}>THT</td>
-                      <td style={{ ...styles.tdExcel, textAlign: 'left', fontWeight: 'bold' }}>SBP1/S PESERTA AKTIF</td>
-                      <td style={styles.tdExcel}>2</td>
-                      <td style={styles.tdExcel}>6.000.000</td>
-                      <td style={styles.tdExcel}>-</td>
-                      <td style={styles.tdExcel}>-</td>
-                      <td style={styles.tdExcel}>-</td>
-                      <td style={styles.tdExcel}>-</td>
-                      <td style={styles.tdExcel}>2</td>
-                      <td style={styles.tdExcel}>6.000.000</td>
-                    </tr>
-                    <tr>
-                      <td style={styles.tdExcel}>PP67</td>
-                      <td style={styles.tdExcel}>THT</td>
-                      <td style={{ ...styles.tdExcel, textAlign: 'left', fontWeight: 'bold' }}>SBP1/S PESERTA PENSIUN</td>
-                      <td style={styles.tdExcel}>5</td>
-                      <td style={styles.tdExcel}>12.000.000</td>
-                      <td style={styles.tdExcel}>-</td>
-                      <td style={styles.tdExcel}>-</td>
-                      <td style={styles.tdExcel}>-</td>
-                      <td style={styles.tdExcel}>-</td>
-                      <td style={styles.tdExcel}>5</td>
-                      <td style={styles.tdExcel}>12.000.000</td>
-                    </tr>
                   </tbody>
                 </table>
               </div>
             </div>
 
-            {/* DUA TOMBOL UNDUH BERBEDA (MERAH PDF & HIJAU EXCEL XLSX) */}
             <div style={styles.modalFooter}>
               <button style={styles.secBtn} onClick={() => setShowHutangPreviewModal(false)}>Tutup</button>
               
-              {/* TOMBOL MERAH UNTUK PDF */}
               <button style={styles.btnPdfRed} onClick={handleDownloadHutangPdf}>
                 📄 Unduh PDF (.pdf)
               </button>
 
-              {/* TOMBOL HIJAU UNTUK EXCEL (.xlsx) */}
               <button style={styles.btnExcelGreen} onClick={handleDownloadHutangExcel}>
                 📊 Unduh Excel (.xlsx)
               </button>
@@ -962,7 +1238,7 @@ export default function App() {
       )}
 
       {/* ========================================================= */}
-      {/* MODAL PREVIEW LAPORAN PENYELESAIAN KLAIM E-1 (GAMBAR 3)   */}
+      {/* MODAL PREVIEW LAPORAN PENYELESAIAN KLAIM E-1               */}
       {/* ========================================================= */}
       {showReportPreviewModal && (
         <div style={styles.modalBackdrop}>
@@ -1042,44 +1318,6 @@ export default function App() {
                       <td style={styles.tdExcel}>71.871,800</td>
                       <td style={styles.tdExcel}>1</td>
                       <td style={styles.tdExcel}>71.871,800</td>
-                      <td style={styles.tdExcel}>0</td>
-                      <td style={styles.tdExcel}>0</td>
-                      <td style={styles.tdExcel}>0</td>
-                      <td style={styles.tdExcel}>0</td>
-                      <td style={styles.tdExcel}>0</td>
-                      <td style={styles.tdExcel}>0</td>
-                    </tr>
-                    <tr>
-                      <td style={styles.tdExcel}>PP67</td>
-                      <td style={styles.tdExcel}>THT</td>
-                      <td style={{ ...styles.tdExcel, textAlign: 'left', fontWeight: 'bold' }}>SNTA</td>
-                      <td style={styles.tdExcel}>0</td>
-                      <td style={styles.tdExcel}>0</td>
-                      <td style={styles.tdExcel}>0</td>
-                      <td style={styles.tdExcel}>0</td>
-                      <td style={styles.tdExcel}>0</td>
-                      <td style={styles.tdExcel}>0</td>
-                      <td style={styles.tdExcel}>0</td>
-                      <td style={styles.tdExcel}>0</td>
-                      <td style={styles.tdExcel}>0</td>
-                      <td style={styles.tdExcel}>0</td>
-                      <td style={styles.tdExcel}>0</td>
-                      <td style={styles.tdExcel}>0</td>
-                      <td style={styles.tdExcel}>0</td>
-                      <td style={styles.tdExcel}>0</td>
-                    </tr>
-                    <tr>
-                      <td style={styles.tdExcel}>PP67</td>
-                      <td style={styles.tdExcel}>THT</td>
-                      <td style={{ ...styles.tdExcel, textAlign: 'left', fontWeight: 'bold' }}>SNTA BERHENTI TANPA HAK</td>
-                      <td style={styles.tdExcel}>0</td>
-                      <td style={styles.tdExcel}>0</td>
-                      <td style={styles.tdExcel}>0</td>
-                      <td style={styles.tdExcel}>0</td>
-                      <td style={styles.tdExcel}>0</td>
-                      <td style={styles.tdExcel}>0</td>
-                      <td style={styles.tdExcel}>0</td>
-                      <td style={styles.tdExcel}>0</td>
                       <td style={styles.tdExcel}>0</td>
                       <td style={styles.tdExcel}>0</td>
                       <td style={styles.tdExcel}>0</td>
@@ -1304,11 +1542,11 @@ function BenefitCard({ title, oldVal, newVal }) {
 }
 
 // ==========================================
-// UNIFIED INLINE STYLES (CAMELCASE JS OBJECTS)
+// UNIFIED INLINE STYLES (MODERN ENTERPRISE UI)
 // ==========================================
 const styles = {
   appRoot: {
-    fontFamily: "'Inter', sans-serif",
+    fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
     backgroundColor: "#f8fafc",
     color: "#0f172a",
     minHeight: "100vh"
@@ -1323,41 +1561,52 @@ const styles = {
     padding: "0 20px",
     position: "fixed",
     top: 0, left: 0, right: 0,
-    zIndex: 100
+    zIndex: 100,
+    boxShadow: "0 4px 20px rgba(11, 19, 41, 0.15)"
   },
   headerLeft: { display: "flex", alignItems: "center", gap: "12px" },
   brandBox: {
-    width: "32px", height: "32px",
+    width: "34px", height: "34px",
     background: "linear-gradient(135deg, #f59e0b, #d97706)",
-    color: "#0b1329", fontWeight: "900", borderRadius: "6px",
-    display: "flex", alignItems: "center", justifyContent: "center"
+    color: "#0b1329", fontWeight: "900", borderRadius: "8px",
+    display: "flex", alignItems: "center", justifyContent: "center",
+    boxShadow: "0 2px 8px rgba(245, 158, 11, 0.4)"
   },
-  brandTitle: { fontWeight: "800", fontSize: "14px", color: "#fff" },
+  brandTitle: { fontWeight: "800", fontSize: "14px", color: "#fff", letterSpacing: "0.3px" },
   brandSub: { fontSize: "10px", color: "#f59e0b", fontWeight: "bold" },
   headerCenter: { flex: 1, maxWidth: "440px", margin: "0 20px" },
   searchInput: {
     width: "100%", padding: "8px 16px",
-    background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)",
-    borderRadius: "20px", color: "#fff", outline: "none", fontSize: "13px"
+    background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.18)",
+    borderRadius: "20px", color: "#fff", outline: "none", fontSize: "13px",
+    transition: "all 0.2s"
   },
   headerRight: { display: "flex", alignItems: "center", gap: "14px" },
   roleBadge: {
-    background: "rgba(255,255,255,0.1)", padding: "4px 10px",
-    borderRadius: "6px", fontSize: "11px", color: "#e2e8f0",
-    display: "flex", alignItems: "center", gap: "8px"
+    background: "rgba(255,255,255,0.08)", padding: "4px 10px",
+    borderRadius: "8px", fontSize: "11px", color: "#e2e8f0",
+    display: "flex", alignItems: "center", gap: "8px",
+    border: "1px solid rgba(255,255,255,0.15)"
+  },
+  roleSelectDropdown: {
+    background: "#0f172a", color: "#f59e0b", border: "1px solid #f59e0b",
+    padding: "3px 8px", borderRadius: "6px", fontSize: "11px", fontWeight: "bold",
+    outline: "none", cursor: "pointer"
   },
   rolePill: { background: "#f59e0b", color: "#0b1329", fontWeight: "bold", padding: "2px 6px", borderRadius: "4px", fontSize: "9px" },
-  userAvatar: { width: "34px", height: "34px", background: "#2563eb", color: "#fff", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold", fontSize: "13px" },
+  userAvatar: { width: "34px", height: "34px", color: "#fff", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold", fontSize: "13px", boxShadow: "0 2px 8px rgba(0,0,0,0.3)" },
   appLayout: { display: "flex", marginTop: "64px", minHeight: "calc(100vh - 64px)" },
   sidebar: {
-    width: "240px", backgroundColor: "#ffffff", borderRight: "1px solid #cbd5e1",
+    width: "240px", backgroundColor: "#ffffff", borderRight: "1px solid #e2e8f0",
     padding: "20px 12px", position: "fixed", top: "64px", bottom: 0, left: 0,
-    display: "flex", flexDirection: "column", justifyContent: "flex-start", gap: "20px"
+    display: "flex", flexDirection: "column", justifyContent: "space-between", gap: "20px",
+    boxShadow: "2px 0 10px rgba(0,0,0,0.02)"
   },
-  sidebarSectionLabel: { fontSize: "11px", fontWeight: "bold", color: "#94a3b8", marginBottom: "8px" },
+  sidebarSectionLabel: { fontSize: "11px", fontWeight: "800", color: "#94a3b8", marginBottom: "8px", letterSpacing: "0.5px" },
   sidebarNavItem: {
     padding: "10px 12px", borderRadius: "8px", fontWeight: "500", fontSize: "13px", color: "#475569",
-    cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center"
+    cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center",
+    transition: "all 0.15s"
   },
   sidebarNavItemActive: {
     backgroundColor: "#eff6ff", color: "#2563eb", padding: "10px 12px",
@@ -1367,7 +1616,7 @@ const styles = {
   sidebarParentNav: {
     padding: "10px 12px", borderRadius: "8px", fontWeight: "600", fontSize: "13px", color: "#334155",
     cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center",
-    backgroundColor: "#f8fafc"
+    backgroundColor: "#f8fafc", border: "1px solid #f1f5f9"
   },
   sidebarSubItem: {
     padding: "8px 12px", borderRadius: "6px", fontSize: "12px", fontWeight: "500", color: "#64748b",
@@ -1378,12 +1627,12 @@ const styles = {
     backgroundColor: "#e0f2fe", cursor: "pointer"
   },
   sidebarActivePill: { background: "#dbeafe", color: "#1d4ed8", padding: "2px 6px", borderRadius: "4px", fontSize: "10px" },
-  sidebarFooter: { background: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: "8px", padding: "12px" },
+  sidebarFooter: { background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "12px" },
   mainContent: { flex: 1, marginLeft: "240px", padding: "24px" },
   pageTopBar: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" },
-  breadcrumb: { fontSize: "12px", color: "#64748b" },
-  pageTitle: { fontSize: "20px", fontWeight: "bold", color: "#0f172a" },
-  dateBox: { background: "#0f172a", color: "#fff", padding: "6px 12px", borderRadius: "6px", fontSize: "12px", fontWeight: "bold" },
+  breadcrumb: { fontSize: "12px", color: "#64748b", fontWeight: "500" },
+  pageTitle: { fontSize: "20px", fontWeight: "800", color: "#0f172a", letterSpacing: "-0.3px" },
+  dateBox: { background: "#0f172a", color: "#fff", padding: "6px 14px", borderRadius: "8px", fontSize: "12px", fontWeight: "bold", boxShadow: "0 2px 6px rgba(15,23,42,0.15)" },
   tabBar: { borderBottom: "2px solid #cbd5e1", marginBottom: "20px" },
   tabBtnActive: { padding: "10px 16px", background: "none", border: "none", borderBottom: "3px solid #2563eb", color: "#2563eb", fontWeight: "bold", fontSize: "13px" },
   kpiGrid: { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "16px", marginBottom: "20px" },
@@ -1404,10 +1653,11 @@ const styles = {
   pesertaName: { fontWeight: "bold", color: "#1d4ed8", textDecoration: "underline" },
   pesertaSub: { fontSize: "11px", color: "#64748b" },
   badge: { background: "#dbeafe", color: "#1d4ed8", padding: "2px 8px", borderRadius: "4px", fontWeight: "bold", fontSize: "11px" },
-  actionBtn: { background: "#eff6ff", color: "#2563eb", border: "1px solid #bfdbfe", padding: "6px 12px", borderRadius: "6px", fontWeight: "bold", fontSize: "12px", cursor: "pointer" },
-  modalBackdrop: { position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(15, 23, 42, 0.7)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" },
-  modalContainer: { background: "#fff", width: "100%", maxWidth: "860px", borderRadius: "12px", overflow: "hidden", display: "flex", flexDirection: "column", maxHeight: "90vh" },
-  modalHeader: { background: "#0b1329", color: "#fff", padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" },
+  actionBtnIcon: { background: "#eff6ff", color: "#2563eb", border: "1px solid #bfdbfe", width: "32px", height: "32px", borderRadius: "6px", fontSize: "14px", display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "all 0.15s" },
+  actionBtnParamIcon: { background: "#f0fdf4", color: "#16a34a", border: "1px solid #bbf7d0", width: "32px", height: "32px", borderRadius: "6px", fontSize: "14px", display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "all 0.15s" },
+  modalBackdrop: { position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(15, 23, 42, 0.75)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px", backdropFilter: "blur(4px)" },
+  modalContainer: { background: "#fff", width: "100%", maxWidth: "860px", borderRadius: "14px", overflow: "hidden", display: "flex", flexDirection: "column", maxHeight: "90vh", boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)" },
+  modalHeader: { background: "#0b1329", color: "#fff", padding: "18px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" },
   closeBtn: { background: "none", border: "none", color: "#fff", fontSize: "18px", cursor: "pointer" },
   modalTabBar: { display: "flex", background: "#f1f5f9", borderBottom: "2px solid #cbd5e1" },
   modalTabBtn: { padding: "12px 20px", background: "none", border: "none", fontSize: "13px", fontWeight: "bold", color: "#64748b", cursor: "pointer" },
@@ -1420,29 +1670,37 @@ const styles = {
   calcBox: { marginTop: "20px", background: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: "10px", padding: "16px" },
   benefitCard: { background: "#fff", border: "1px solid #cbd5e1", borderRadius: "8px", padding: "12px" },
   totalBanner: { marginTop: "12px", background: "#0f172a", borderRadius: "8px", padding: "14px 18px", display: "flex", justifyContent: "space-between", alignItems: "center" },
-  modalFooter: { padding: "14px 20px", background: "#f8fafc", borderTop: "1px solid #cbd5e1", display: "flex", justifyContent: "flex-end", gap: "12px" },
-  secBtn: { padding: "8px 16px", background: "#e2e8f0", border: "none", borderRadius: "6px", fontWeight: "bold", fontSize: "13px", cursor: "pointer" },
-  priBtn: { padding: "8px 16px", background: "#2563eb", color: "#fff", border: "none", borderRadius: "6px", fontWeight: "bold", fontSize: "13px", cursor: "pointer" },
-  btnPdfRed: { padding: "8px 18px", background: "#dc2626", color: "#ffffff", border: "none", borderRadius: "6px", fontWeight: "bold", fontSize: "13px", cursor: "pointer" },
-  btnExcelGreen: { padding: "8px 18px", background: "#16a34a", color: "#ffffff", border: "none", borderRadius: "6px", fontWeight: "bold", fontSize: "13px", cursor: "pointer" },
-  subModalContainer: { background: "#fff", width: "100%", maxWidth: "440px", borderRadius: "12px", overflow: "hidden" },
-  subModalHeader: { background: "#1e293b", padding: "14px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" },
-  editInput: { width: "100%", padding: "10px 14px", border: "2px solid #60a5fa", borderRadius: "6px", fontSize: "14px", fontWeight: "bold", outline: "none" },
+  modalFooter: { padding: "16px 24px", background: "#f8fafc", borderTop: "1px solid #e2e8f0", display: "flex", justifyContent: "flex-end", gap: "12px" },
+  secBtn: { padding: "9px 18px", background: "#e2e8f0", border: "none", borderRadius: "8px", fontWeight: "bold", fontSize: "13px", cursor: "pointer", color: "#475569" },
+  priBtn: { padding: "9px 18px", background: "#2563eb", color: "#fff", border: "none", borderRadius: "8px", fontWeight: "bold", fontSize: "13px", cursor: "pointer" },
+  btnPdfRed: { padding: "9px 20px", background: "linear-gradient(135deg, #dc2626, #b91c1c)", color: "#ffffff", border: "none", borderRadius: "8px", fontWeight: "bold", fontSize: "13px", cursor: "pointer", boxShadow: "0 4px 12px rgba(220, 38, 38, 0.25)" },
+  btnExcelGreen: { padding: "9px 20px", background: "linear-gradient(135deg, #16a34a, #15803d)", color: "#ffffff", border: "none", borderRadius: "8px", fontWeight: "bold", fontSize: "13px", cursor: "pointer", boxShadow: "0 4px 12px rgba(22, 163, 74, 0.25)" },
+  subModalContainer: { background: "#fff", width: "100%", maxWidth: "520px", borderRadius: "14px", overflow: "hidden", boxShadow: "0 20px 40px rgba(0,0,0,0.2)" },
+  subModalHeader: { background: "#0b1329", padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" },
+  editInput: { width: "100%", padding: "10px 14px", border: "2px solid #60a5fa", borderRadius: "8px", fontSize: "15px", fontWeight: "bold", outline: "none", backgroundColor: "#f0f9ff" },
+  paramTextarea: { width: "100%", padding: "10px 14px", border: "1px solid #cbd5e1", borderRadius: "8px", fontSize: "13px", outline: "none", backgroundColor: "#f8fafc", fontFamily: "inherit" },
+  paramDetailBox: { background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "10px 12px" },
   suffixText: { position: "absolute", right: "12px", fontWeight: "bold", color: "#64748b", fontSize: "12px" },
   toastWrap: { position: "fixed", bottom: "24px", right: "24px", zIndex: 2000, display: "flex", flexDirection: "column", gap: "8px" },
-  toast: { background: "#0f172a", color: "#fff", padding: "12px 18px", borderRadius: "8px", fontSize: "13px", fontWeight: "bold", borderLeft: "4px solid #10b981" },
+  toast: { background: "#0f172a", color: "#fff", padding: "12px 18px", borderRadius: "10px", fontSize: "13px", fontWeight: "bold", borderLeft: "4px solid #10b981", boxShadow: "0 10px 25px rgba(0,0,0,0.2)" },
 
-  // STYLES FOR REPORT PAGES & EXCEL FORMAT PREVIEW
-  reportCardWrapper: { background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: "8px", padding: "20px" },
-  filterCardBox: { border: "1px solid #cbd5e1", borderRadius: "4px", overflow: "hidden" },
-  filterBarHeader: { background: "#0b1329", color: "#ffffff", padding: "10px 14px", fontSize: "13px", fontWeight: "bold", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" },
-  filterBarBody: { padding: "16px", backgroundColor: "#ffffff" },
-  formGrid3: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px" },
-  formFieldGroup: { display: "flex", flexDirection: "column", gap: "4px" },
-  formLabel: { fontSize: "12px", fontWeight: "bold", color: "#1e293b" },
-  formControlInput: { padding: "8px 10px", border: "1px solid #cbd5e1", borderRadius: "4px", fontSize: "13px", outline: "none" },
-  formControlSelect: { padding: "8px 10px", border: "1px solid #cbd5e1", borderRadius: "4px", fontSize: "13px", color: "#334155", backgroundColor: "#ffffff", outline: "none", cursor: "pointer" },
-  btnCetak: { background: "#10b981", color: "#ffffff", border: "none", padding: "8px 24px", borderRadius: "4px", fontSize: "13px", fontWeight: "bold", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "6px" },
+  // AKTUARIA SPECIAL STYLES
+  auditBadgePill: { background: "#e2e8f0", color: "#334155", fontSize: "11px", fontWeight: "bold", padding: "3px 10px", borderRadius: "20px" },
+
+  // MODERN ENTERPRISE FILTER CARD STYLES
+  modernCardContainer: { background: "#ffffff", borderRadius: "14px", border: "1px solid #e2e8f0", padding: "20px", boxShadow: "0 4px 20px rgba(0,0,0,0.03)" },
+  modernFilterCard: { border: "1px solid #cbd5e1", borderRadius: "12px", overflow: "hidden", boxShadow: "0 4px 14px rgba(0,0,0,0.04)" },
+  modernFilterHeader: { background: "linear-gradient(135deg, #0b1329 0%, #1e293b 100%)", color: "#ffffff", padding: "14px 20px", fontSize: "13px", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", borderBottom: "1px solid rgba(255,255,255,0.08)" },
+  modernFilterTag: { background: "rgba(255,255,255,0.12)", color: "#e2e8f0", padding: "3px 10px", borderRadius: "20px", fontSize: "11px", fontWeight: "600" },
+  modernFilterBody: { padding: "20px", backgroundColor: "#ffffff" },
+  modernControlsGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "20px", marginBottom: "20px" },
+  modernFieldGroup: { display: "flex", flexDirection: "column", gap: "6px" },
+  modernLabel: { fontSize: "12px", fontWeight: "700", color: "#334155", display: "flex", alignItems: "center", gap: "6px" },
+  modernInput: { padding: "10px 14px", border: "1px solid #cbd5e1", borderRadius: "8px", fontSize: "13px", outline: "none", transition: "all 0.2s", backgroundColor: "#f8fafc", fontWeight: "600", color: "#0f172a" },
+  modernSelect: { padding: "10px 14px", border: "1px solid #cbd5e1", borderRadius: "8px", fontSize: "13px", color: "#0f172a", backgroundColor: "#f8fafc", outline: "none", cursor: "pointer", fontWeight: "600", transition: "all 0.2s" },
+  modernActionBar: { display: "flex", alignItems: "center", paddingTop: "16px", borderTop: "1px solid #f1f5f9" },
+  btnPrimaryModern: { background: "linear-gradient(135deg, #2563eb, #1d4ed8)", color: "#ffffff", border: "none", padding: "10px 22px", borderRadius: "8px", fontSize: "13px", fontWeight: "bold", cursor: "pointer", boxShadow: "0 4px 14px rgba(37, 99, 235, 0.3)", display: "inline-flex", alignItems: "center", gap: "8px", transition: "transform 0.15s, boxShadow 0.15s" },
+  btnIconResetModern: { background: "#f1f5f9", color: "#475569", border: "1px solid #cbd5e1", width: "38px", height: "38px", borderRadius: "8px", fontSize: "15px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "all 0.15s" },
   thExcel: { border: "1px solid #94a3b8", padding: "6px 8px", fontSize: "10px", fontWeight: "bold" },
   tdExcel: { border: "1px solid #cbd5e1", padding: "6px 8px", fontSize: "10px" }
 };
