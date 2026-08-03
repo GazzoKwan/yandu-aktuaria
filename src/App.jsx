@@ -159,18 +159,39 @@ function calculateBenefits(gajiPokok, masaKerjaBulan, skorsingBulan, mkgAwalTahu
 }
 
 // ==========================================
-// MAIN APP COMPONENT (SINGLE SIMPLE JSX FILE)
+// MAIN APP COMPONENT
 // ==========================================
 export default function App() {
   const [claims, setClaims] = useState(initialClaimData);
+  const [activePage, setActivePage] = useState('koreksi'); // 'koreksi' | 'reportHutang' | 'reportPenyelesaian'
+  const [reportExpanded, setReportExpanded] = useState(true);
+
+  // Search & Filter state for Koreksi
   const [searchVal, setSearchVal] = useState('');
   const [filterKlaim, setFilterKlaim] = useState('ALL');
   
+  // Modals state
   const [selectedClaimId, setSelectedClaimId] = useState(null);
-  const [modalTab, setModalTab] = useState('profil'); // 'profil' | 'masakerja'
+  const [modalTab, setModalTab] = useState('profil');
   const [editConfig, setEditConfig] = useState(null);
   const [editInputValue, setEditInputValue] = useState('');
   const [toasts, setToasts] = useState([]);
+
+  // Report Hutang Klaim Form state (Gambar 1)
+  const [hutangTahun, setHutangTahun] = useState('2026');
+  const [hutangTriwulan, setHutangTriwulan] = useState('I');
+  const [hutangKategori, setHutangKategori] = useState('Utang Klaim Tahun Lalu');
+  const [hutangType, setHutangType] = useState('Rekap');
+  const [filterHutangOpen, setFilterHutangOpen] = useState(true);
+  const [showHutangPreviewModal, setShowHutangPreviewModal] = useState(false);
+
+  // Report Penyelesaian Klaim Form state (Gambar 2)
+  const [penyelesaianTriwulan, setPenyelesaianTriwulan] = useState('1');
+  const [penyelesaianType, setPenyelesaianType] = useState('Rekap');
+  const [penyelesaianJenis, setPenyelesaianJenis] = useState('KLAIM DALAM PROSES AKHIR TRIWULAN/TAHUN LALU');
+  const [penyelesaianTahun, setPenyelesaianTahun] = useState('2026');
+  const [filterPenyelesaianOpen, setFilterPenyelesaianOpen] = useState(true);
+  const [showReportPreviewModal, setShowReportPreviewModal] = useState(false);
 
   // Filtered Claims
   const filteredClaims = claims.filter(item => {
@@ -195,12 +216,7 @@ export default function App() {
 
   const handleOpenEditField = (fieldName, fieldLabel, inputType = 'text', suffix = '') => {
     if (!selectedClaim) return;
-    setEditConfig({
-      fieldName,
-      fieldLabel,
-      inputType,
-      suffix
-    });
+    setEditConfig({ fieldName, fieldLabel, inputType, suffix });
     setEditInputValue(selectedClaim[fieldName] !== undefined ? selectedClaim[fieldName] : '');
   };
 
@@ -232,6 +248,32 @@ export default function App() {
     setSelectedClaimId(null);
   };
 
+  // Preview & Download handlers for Report Penyelesaian Klaim E-1
+  const handleOpenPenyelesaianPreview = () => {
+    setShowReportPreviewModal(true);
+  };
+  const handleDownloadPdf = () => {
+    addToast(`🔴 Berkas Laporan Penyelesaian Klaim E-1 (Triwulan ${penyelesaianTriwulan} ${penyelesaianTahun}).pdf berhasil diunduh!`);
+    setShowReportPreviewModal(false);
+  };
+  const handleDownloadExcel = () => {
+    addToast(`🟢 Berkas Laporan Penyelesaian Klaim E-1 (Triwulan ${penyelesaianTriwulan} ${penyelesaianTahun}).xlsx berhasil diunduh!`);
+    setShowReportPreviewModal(false);
+  };
+
+  // Preview & Download handlers for Report Hutang Klaim B-2
+  const handleOpenHutangPreview = () => {
+    setShowHutangPreviewModal(true);
+  };
+  const handleDownloadHutangPdf = () => {
+    addToast(`🔴 Berkas Laporan Utang Klaim B-2 (Triwulan ${hutangTriwulan} ${hutangTahun}).pdf berhasil diunduh!`);
+    setShowHutangPreviewModal(false);
+  };
+  const handleDownloadHutangExcel = () => {
+    addToast(`🟢 Berkas Laporan Utang Klaim B-2 (Triwulan ${hutangTriwulan} ${hutangTahun}).xlsx berhasil diunduh!`);
+    setShowHutangPreviewModal(false);
+  };
+
   // Calculations for KPI and Modal
   let totalNettoAll = 0;
   let terkoreksiCount = 0;
@@ -246,7 +288,7 @@ export default function App() {
 
   return (
     <div style={styles.appRoot}>
-      {/* HEADER */}
+      {/* TOP HEADER */}
       <header style={styles.header}>
         <div style={styles.headerLeft}>
           <div style={styles.brandBox}>A</div>
@@ -276,152 +318,799 @@ export default function App() {
       </header>
 
       <div style={styles.appLayout}>
-        {/* SIDEBAR (RAPAT KE ATAS) */}
+        {/* SIDEBAR NAVIGATION WITH REPORT PELAYANAN SUB-MENUS */}
         <aside style={styles.sidebar}>
           <div>
             <div style={styles.sidebarSectionLabel}>PELAYANAN KANCAB</div>
-            <div style={styles.sidebarNavItemActive}>
+
+            {/* MENU 1: KOREKSI MANFAAT */}
+            <div 
+              style={activePage === 'koreksi' ? styles.sidebarNavItemActive : styles.sidebarNavItem}
+              onClick={() => setActivePage('koreksi')}
+            >
               <span>📋 Koreksi Manfaat</span>
-              <span style={styles.sidebarActivePill}>AKTIF</span>
+              {activePage === 'koreksi' && <span style={styles.sidebarActivePill}>AKTIF</span>}
+            </div>
+
+            {/* MENU 2: REPORT PELAYANAN (PARENT MENU WITH SUB-MENUS) */}
+            <div style={{ marginTop: 12 }}>
+              <div 
+                style={styles.sidebarParentNav}
+                onClick={() => setReportExpanded(!reportExpanded)}
+              >
+                <span>📊 Report Pelayanan</span>
+                <span style={{ fontSize: 10 }}>{reportExpanded ? '▼' : '▶'}</span>
+              </div>
+
+              {/* SUB-MENUS */}
+              {reportExpanded && (
+                <div style={{ marginLeft: 12, marginTop: 4, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  {/* SUB-MENU 1: REPORT HUTANG KLAIM (GAMBAR 1) */}
+                  <div 
+                    style={activePage === 'reportHutang' ? styles.sidebarSubItemActive : styles.sidebarSubItem}
+                    onClick={() => setActivePage('reportHutang')}
+                  >
+                    📄 Report Hutang Klaim
+                  </div>
+
+                  {/* SUB-MENU 2: REPORT PENYELESAIAN KLAIM (GAMBAR 2) */}
+                  <div 
+                    style={activePage === 'reportPenyelesaian' ? styles.sidebarSubItemActive : styles.sidebarSubItem}
+                    onClick={() => setActivePage('reportPenyelesaian')}
+                  >
+                    📄 Report Penyelesaian Klaim
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
           <div style={styles.sidebarFooter}>
             <div style={{ fontWeight: 'bold', fontSize: 12 }}>Akses CSO KanCab</div>
             <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
-              Klik nama peserta untuk detail. Klik icon ✏️ pensil untuk mengedit MKG & Skorsing.
+              Menu Koreksi Manfaat & Laporan Pelayanan Resmi ASABRI.
             </div>
           </div>
         </aside>
 
-        {/* MAIN CONTENT */}
+        {/* MAIN CONTENT AREA */}
         <main style={styles.mainContent}>
-          <div style={styles.pageTopBar}>
+          
+          {/* ========================================== */}
+          {/* PAGE 1: KOREKSI PERHITUNGAN MANFAAT        */}
+          {/* ========================================== */}
+          {activePage === 'koreksi' && (
             <div>
-              <div style={styles.breadcrumb}>Beranda &rsaquo; Pelayanan &rsaquo; Koreksi Perhitungan Manfaat</div>
-              <h1 style={styles.pageTitle}>Review & Koreksi Perhitungan Manfaat</h1>
-            </div>
-            <div style={styles.dateBox}>Senin, 03 Agustus 2026</div>
-          </div>
+              <div style={styles.pageTopBar}>
+                <div>
+                  <div style={styles.breadcrumb}>Beranda &rsaquo; Pelayanan &rsaquo; Koreksi Perhitungan Manfaat</div>
+                  <h1 style={styles.pageTitle}>Review & Koreksi Perhitungan Manfaat</h1>
+                </div>
+                <div style={styles.dateBox}>Senin, 03 Agustus 2026</div>
+              </div>
 
-          {/* MAIN TAB BAR */}
-          <div style={styles.tabBar}>
-            <button style={styles.tabBtnActive}>
-              Daftar Perhitungan Manfaat ({claims.length})
-            </button>
-          </div>
+              <div style={styles.tabBar}>
+                <button style={styles.tabBtnActive}>
+                  Daftar Perhitungan Manfaat ({claims.length})
+                </button>
+              </div>
 
-          {/* KPI METRICS */}
-          <div style={styles.kpiGrid}>
-            <div style={styles.kpiCard}>
-              <div style={styles.kpiTitle}>TOTAL DOKUMEN</div>
-              <div style={styles.kpiValue}>{claims.length}</div>
-              <div style={styles.kpiDesc}>dokumen aktif periode berjalan</div>
-            </div>
-            <div style={styles.kpiCard}>
-              <div style={styles.kpiTitle}>TOTAL MANFAAT BRUTO</div>
-              <div style={styles.kpiValue}>Rp 1,59 M</div>
-              <div style={styles.kpiDesc}>nilai manfaat sebelum koreksi</div>
-            </div>
-            <div style={styles.kpiCard}>
-              <div style={styles.kpiTitle}>KOREKSI SKORSING & MKG</div>
-              <div style={styles.kpiValue}>{terkoreksiCount} Dokumen</div>
-              <div style={styles.kpiDesc}>telah disesuaikan oleh CSO</div>
-            </div>
-            <div style={styles.kpiCard}>
-              <div style={styles.kpiTitle}>ESTIMASI TOTAL NETTO</div>
-              <div style={styles.kpiValue}>{formatRupiah(totalNettoAll)}</div>
-              <div style={styles.kpiDesc}>nilai bersih manfaat klaim</div>
-            </div>
-          </div>
+              {/* KPI METRICS */}
+              <div style={styles.kpiGrid}>
+                <div style={styles.kpiCard}>
+                  <div style={styles.kpiTitle}>TOTAL DOKUMEN</div>
+                  <div style={styles.kpiValue}>{claims.length}</div>
+                  <div style={styles.kpiDesc}>dokumen aktif periode berjalan</div>
+                </div>
+                <div style={styles.kpiCard}>
+                  <div style={styles.kpiTitle}>TOTAL MANFAAT BRUTO</div>
+                  <div style={styles.kpiValue}>Rp 1,59 M</div>
+                  <div style={styles.kpiDesc}>nilai manfaat sebelum koreksi</div>
+                </div>
+                <div style={styles.kpiCard}>
+                  <div style={styles.kpiTitle}>KOREKSI SKORSING & MKG</div>
+                  <div style={styles.kpiValue}>{terkoreksiCount} Dokumen</div>
+                  <div style={styles.kpiDesc}>telah disesuaikan oleh CSO</div>
+                </div>
+                <div style={styles.kpiCard}>
+                  <div style={styles.kpiTitle}>ESTIMASI TOTAL NETTO</div>
+                  <div style={styles.kpiValue}>{formatRupiah(totalNettoAll)}</div>
+                  <div style={styles.kpiDesc}>nilai bersih manfaat klaim</div>
+                </div>
+              </div>
 
-          {/* TOOLBAR */}
-          <div style={styles.toolbar}>
-            <div style={{ display: 'flex', gap: 12 }}>
-              <input 
-                type="text" 
-                style={styles.filterInput}
-                value={searchVal} 
-                onChange={(e) => setSearchVal(e.target.value)} 
-                placeholder="Cari No. SP / Nama / NRP..." 
-              />
-              <select 
-                style={styles.filterSelect}
-                value={filterKlaim}
-                onChange={(e) => setFilterKlaim(e.target.value)}
-              >
-                <option value="ALL">Semua Jenis Klaim</option>
-                <option value="TA">Tabungan Asuransi (TA)</option>
-                <option value="NTTA">Nilai Tunai TA (NTTA)</option>
-                <option value="NTIP">Nilai Tunai Iuran Pensiun (NTIP)</option>
-              </select>
-            </div>
-            <div style={{ fontSize: 12, color: '#64748b' }}>
-              Menampilkan {filteredClaims.length} dari {claims.length} Dokumen
-            </div>
-          </div>
+              {/* TOOLBAR */}
+              <div style={styles.toolbar}>
+                <div style={{ display: 'flex', gap: 12 }}>
+                  <input 
+                    type="text" 
+                    style={styles.filterInput}
+                    value={searchVal} 
+                    onChange={(e) => setSearchVal(e.target.value)} 
+                    placeholder="Cari No. SP / Nama / NRP..." 
+                  />
+                  <select 
+                    style={styles.filterSelect}
+                    value={filterKlaim}
+                    onChange={(e) => setFilterKlaim(e.target.value)}
+                  >
+                    <option value="ALL">Semua Jenis Klaim</option>
+                    <option value="TA">Tabungan Asuransi (TA)</option>
+                    <option value="NTTA">Nilai Tunai TA (NTTA)</option>
+                    <option value="NTIP">Nilai Tunai Iuran Pensiun (NTIP)</option>
+                  </select>
+                </div>
+                <div style={{ fontSize: 12, color: '#64748b' }}>
+                  Menampilkan {filteredClaims.length} dari {claims.length} Dokumen
+                </div>
+              </div>
 
-          {/* DATA TABLE (NO STATUS COLUMN) */}
-          <div style={styles.tableWrap}>
-            <table style={styles.table}>
-              <thead>
-                <tr style={styles.thRow}>
-                  <th style={styles.th}>NO. SP</th>
-                  <th style={styles.th}>TGL PENGAJUAN</th>
-                  <th style={styles.th}>PESERTA / NRP (KLIK DETAIL)</th>
-                  <th style={styles.th}>JENIS KLAIM</th>
-                  <th style={styles.th}>SKORSING</th>
-                  <th style={styles.th}>MKG AWAL</th>
-                  <th style={styles.th}>MANFAAT TA</th>
-                  <th style={styles.th}>NTTA</th>
-                  <th style={styles.th}>NTIP</th>
-                  <th style={{ ...styles.th, textAlign: 'right' }}>AKSI (CSO)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredClaims.map(item => {
-                  const calc = calculateBenefits(item.gajiPokok, item.masaKerjaBulan, item.skorsingBulan, item.mkgAwalTahun);
-                  return (
-                    <tr key={item.id} style={styles.tr}>
-                      <td style={styles.td}><strong>{item.spNum}</strong></td>
-                      <td style={styles.td}>{item.tgl}</td>
-                      <td style={styles.td}>
-                        <div 
-                          style={styles.pesertaClickable}
-                          onClick={() => { setSelectedClaimId(item.id); setModalTab('profil'); }}
-                        >
-                          <div style={styles.pesertaName}>{item.nama}</div>
-                          <div style={styles.pesertaSub}>KTPA: {item.ktpa} • NRP: {item.nrp}</div>
-                        </div>
-                      </td>
-                      <td style={styles.td}><span style={styles.badge}>{item.jenisKlaim}</span></td>
-                      <td style={styles.td}><strong>{item.skorsingBulan}</strong> Bulan</td>
-                      <td style={styles.td}><strong>{item.mkgAwalTahun}</strong> Tahun</td>
-                      <td style={styles.td}><strong>{formatRupiah(calc.ta)}</strong></td>
-                      <td style={styles.td}>{formatRupiah(calc.ntta)}</td>
-                      <td style={styles.td}>{formatRupiah(calc.ntip)}</td>
-                      <td style={{ ...styles.td, textAlign: 'right' }}>
-                        <button 
-                          style={styles.actionBtn}
-                          onClick={() => { setSelectedClaimId(item.id); setModalTab('profil'); }}
-                        >
-                          ✏️ Detail & Koreksi
-                        </button>
-                      </td>
+              {/* DATA TABLE (NO STATUS COLUMN) */}
+              <div style={styles.tableWrap}>
+                <table style={styles.table}>
+                  <thead>
+                    <tr style={styles.thRow}>
+                      <th style={styles.th}>NO. SP</th>
+                      <th style={styles.th}>TGL PENGAJUAN</th>
+                      <th style={styles.th}>PESERTA / NRP (KLIK DETAIL)</th>
+                      <th style={styles.th}>JENIS KLAIM</th>
+                      <th style={styles.th}>SKORSING</th>
+                      <th style={styles.th}>MKG AWAL</th>
+                      <th style={styles.th}>MANFAAT TA</th>
+                      <th style={styles.th}>NTTA</th>
+                      <th style={styles.th}>NTIP</th>
+                      <th style={{ ...styles.th, textAlign: 'right' }}>AKSI (CSO)</th>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                  </thead>
+                  <tbody>
+                    {filteredClaims.map(item => {
+                      const calc = calculateBenefits(item.gajiPokok, item.masaKerjaBulan, item.skorsingBulan, item.mkgAwalTahun);
+                      return (
+                        <tr key={item.id} style={styles.tr}>
+                          <td style={styles.td}><strong>{item.spNum}</strong></td>
+                          <td style={styles.td}>{item.tgl}</td>
+                          <td style={styles.td}>
+                            <div 
+                              style={styles.pesertaClickable}
+                              onClick={() => { setSelectedClaimId(item.id); setModalTab('profil'); }}
+                            >
+                              <div style={styles.pesertaName}>{item.nama}</div>
+                              <div style={styles.pesertaSub}>KTPA: {item.ktpa} • NRP: {item.nrp}</div>
+                            </div>
+                          </td>
+                          <td style={styles.td}><span style={styles.badge}>{item.jenisKlaim}</span></td>
+                          <td style={styles.td}><strong>{item.skorsingBulan}</strong> Bulan</td>
+                          <td style={styles.td}><strong>{item.mkgAwalTahun}</strong> Tahun</td>
+                          <td style={styles.td}><strong>{formatRupiah(calc.ta)}</strong></td>
+                          <td style={styles.td}>{formatRupiah(calc.ntta)}</td>
+                          <td style={styles.td}>{formatRupiah(calc.ntip)}</td>
+                          <td style={{ ...styles.td, textAlign: 'right' }}>
+                            <button 
+                              style={styles.actionBtn}
+                              onClick={() => { setSelectedClaimId(item.id); setModalTab('profil'); }}
+                            >
+                              ✏️ Detail & Koreksi
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* ========================================== */}
+          {/* PAGE 2: REPORT HUTANG KLAIM (GAMBAR 1)     */}
+          {/* ========================================== */}
+          {activePage === 'reportHutang' && (
+            <div>
+              <div style={styles.pageTopBar}>
+                <div>
+                  <div style={styles.breadcrumb}>Beranda &rsaquo; Pelayanan &rsaquo; Report Pelayanan &rsaquo; Report Hutang Klaim</div>
+                  <h1 style={styles.pageTitle}>Report Hutang Klaim</h1>
+                </div>
+                <div style={styles.dateBox}>Senin, 03 Agustus 2026</div>
+              </div>
+
+              <div style={styles.reportCardWrapper}>
+                <div style={styles.filterCardBox}>
+                  <div 
+                    style={styles.filterBarHeader}
+                    onClick={() => setFilterHutangOpen(!filterHutangOpen)}
+                  >
+                    <span>▸ Filter</span>
+                    <span style={{ fontSize: 12 }}>{filterHutangOpen ? '▲' : '▼'}</span>
+                  </div>
+
+                  {filterHutangOpen && (
+                    <div style={styles.filterBarBody}>
+                      <div style={styles.formGrid3}>
+                        <div style={styles.formFieldGroup}>
+                          <label style={styles.formLabel}>Tahun</label>
+                          <input 
+                            type="text" 
+                            style={styles.formControlInput}
+                            value={hutangTahun} 
+                            onChange={(e) => setHutangTahun(e.target.value)} 
+                          />
+                        </div>
+
+                        <div style={styles.formFieldGroup}>
+                          <label style={styles.formLabel}>Triwulan</label>
+                          <select 
+                            style={styles.formControlSelect}
+                            value={hutangTriwulan}
+                            onChange={(e) => setHutangTriwulan(e.target.value)}
+                          >
+                            <option value="I">I</option>
+                            <option value="II">II</option>
+                            <option value="III">III</option>
+                            <option value="IV">IV</option>
+                          </select>
+                        </div>
+
+                        <div style={styles.formFieldGroup}>
+                          <label style={styles.formLabel}>Kategori</label>
+                          <select 
+                            style={styles.formControlSelect}
+                            value={hutangKategori}
+                            onChange={(e) => setHutangKategori(e.target.value)}
+                          >
+                            <option value="Utang Klaim Tahun Lalu">Utang Klaim Tahun Lalu</option>
+                            <option value="Utang Klaim Tahun Berjalan">Utang Klaim Tahun Berjalan</option>
+                            <option value="Semua Utang Klaim">Semua Utang Klaim</option>
+                          </select>
+                        </div>
+
+                        <div style={styles.formFieldGroup}>
+                          <label style={styles.formLabel}>Type</label>
+                          <select 
+                            style={styles.formControlSelect}
+                            value={hutangType}
+                            onChange={(e) => setHutangType(e.target.value)}
+                          >
+                            <option value="Rekap">Rekap</option>
+                            <option value="Detail">Detail</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* ACTION CETAK BUTTON (OPENS OFFICIAL B-2 PREVIEW MODAL) */}
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
+                        <button 
+                          style={styles.btnCetak}
+                          onClick={handleOpenHutangPreview}
+                        >
+                          🔍 Cetak
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ marginTop: 24 }}>
+                  <div style={{ fontSize: 13, fontWeight: 'bold', color: '#0b1329', marginBottom: 8 }}>
+                    📋 Preview Hasil Laporan Hutang Klaim ({hutangKategori} - Triwulan {hutangTriwulan} {hutangTahun})
+                  </div>
+                  <div style={styles.tableWrap}>
+                    <table style={styles.table}>
+                      <thead>
+                        <tr style={styles.thRow}>
+                          <th style={styles.th}>NO</th>
+                          <th style={styles.th}>JENIS KLAIM</th>
+                          <th style={styles.th}>JUMLAH SP</th>
+                          <th style={styles.th}>TOTAL NOMINAL UTANG</th>
+                          <th style={styles.th}>STATUS PROSES</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr style={styles.tr}>
+                          <td style={styles.td}>1</td>
+                          <td style={styles.td}><strong>Tabungan Asuransi (TA)</strong></td>
+                          <td style={styles.td}>4 SP</td>
+                          <td style={styles.td}><strong>Rp 842.500.000</strong></td>
+                          <td style={styles.td}><span style={styles.badge}>Diverifikasi CSO</span></td>
+                        </tr>
+                        <tr style={styles.tr}>
+                          <td style={styles.td}>2</td>
+                          <td style={styles.td}><strong>Nilai Tunai TA (NTTA)</strong></td>
+                          <td style={styles.td}>2 SP</td>
+                          <td style={styles.td}><strong>Rp 410.200.000</strong></td>
+                          <td style={styles.td}><span style={styles.badge}>Proses Pembayaran</span></td>
+                        </tr>
+                        <tr style={styles.tr}>
+                          <td style={styles.td}>3</td>
+                          <td style={styles.td}><strong>Nilai Tunai Iuran Pensiun (NTIP)</strong></td>
+                          <td style={styles.td}>2 SP</td>
+                          <td style={styles.td}><strong>Rp 340.800.000</strong></td>
+                          <td style={styles.td}><span style={styles.badge}>Pending SKEP</span></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ========================================== */}
+          {/* PAGE 3: REPORT PENYELESAIAN KLAIM (GAMBAR 2) */}
+          {/* ========================================== */}
+          {activePage === 'reportPenyelesaian' && (
+            <div>
+              <div style={styles.pageTopBar}>
+                <div>
+                  <div style={styles.breadcrumb}>Beranda &rsaquo; Pelayanan &rsaquo; Report Pelayanan &rsaquo; Report Penyelesaian Klaim</div>
+                  <h1 style={styles.pageTitle}>Report Penyelesaian Klaim</h1>
+                </div>
+                <div style={styles.dateBox}>Senin, 03 Agustus 2026</div>
+              </div>
+
+              <div style={styles.reportCardWrapper}>
+                <div style={styles.filterCardBox}>
+                  <div 
+                    style={styles.filterBarHeader}
+                    onClick={() => setFilterPenyelesaianOpen(!filterPenyelesaianOpen)}
+                  >
+                    <span>▸ Filter</span>
+                    <span style={{ fontSize: 12 }}>{filterPenyelesaianOpen ? '▲' : '▼'}</span>
+                  </div>
+
+                  {filterPenyelesaianOpen && (
+                    <div style={styles.filterBarBody}>
+                      <div style={styles.formGrid3}>
+                        <div style={styles.formFieldGroup}>
+                          <label style={styles.formLabel}>Triwulan</label>
+                          <select 
+                            style={styles.formControlSelect}
+                            value={penyelesaianTriwulan}
+                            onChange={(e) => setPenyelesaianTriwulan(e.target.value)}
+                          >
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                          </select>
+                        </div>
+
+                        <div style={styles.formFieldGroup}>
+                          <label style={styles.formLabel}>Type</label>
+                          <select 
+                            style={styles.formControlSelect}
+                            value={penyelesaianType}
+                            onChange={(e) => setPenyelesaianType(e.target.value)}
+                          >
+                            <option value="Rekap">Rekap</option>
+                            <option value="Detail">Detail</option>
+                          </select>
+                        </div>
+
+                        <div style={{ ...styles.formFieldGroup, gridColumn: 'span 2' }}>
+                          <label style={styles.formLabel}>Jenis</label>
+                          <select 
+                            style={styles.formControlSelect}
+                            value={penyelesaianJenis}
+                            onChange={(e) => setPenyelesaianJenis(e.target.value)}
+                          >
+                            <option value="KLAIM DALAM PROSES AKHIR TRIWULAN/TAHUN LALU">KLAIM DALAM PROSES AKHIR TRIWULAN/TAHUN LALU</option>
+                            <option value="KLAIM YANG DIAJUKAN TRIWULAN/TAHUN BERJALAN">KLAIM YANG DIAJUKAN TRIWULAN/TAHUN BERJALAN</option>
+                            <option value="KLAIM YANG HARUS DISELESAIKAN TRIWULAN/TAHUN BERJALAN KLAIM YANG HARUS DIPROSES">KLAIM YANG HARUS DISELESAIKAN TRIWULAN/TAHUN BERJALAN KLAIM YANG HARUS DIPROSES</option>
+                            <option value="KLAIM YANG DISETUJUI TRIWULAN/TAHUN BERJALAN DAN TELAH DI BAYAR">KLAIM YANG DISETUJUI TRIWULAN/TAHUN BERJALAN DAN TELAH DI BAYAR</option>
+                            <option value="KLAIM YANG DISETUJUI TRIWULAN/TAHUN BERJALAN TAPI BELUM DI BAYAR">KLAIM YANG DISETUJUI TRIWULAN/TAHUN BERJALAN TAPI BELUM DI BAYAR</option>
+                            <option value="KLAIM DALAM PROSES AKHIR TRIWULAN/TAHUN BERJALAN">KLAIM DALAM PROSES AKHIR TRIWULAN/TAHUN BERJALAN</option>
+                          </select>
+                        </div>
+
+                        <div style={styles.formFieldGroup}>
+                          <label style={styles.formLabel}>Tahun</label>
+                          <input 
+                            type="text" 
+                            style={styles.formControlInput}
+                            value={penyelesaianTahun} 
+                            onChange={(e) => setPenyelesaianTahun(e.target.value)} 
+                          />
+                        </div>
+                      </div>
+
+                      {/* ACTION CETAK BUTTON (OPENS OFFICIAL E-1 PREVIEW MODAL) */}
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
+                        <button 
+                          style={styles.btnCetak}
+                          onClick={handleOpenPenyelesaianPreview}
+                        >
+                          🔍 Cetak
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ marginTop: 24 }}>
+                  <div style={{ fontSize: 13, fontWeight: 'bold', color: '#0b1329', marginBottom: 8 }}>
+                    📋 Preview Laporan Penyelesaian Pelayanan ({penyelesaianJenis})
+                  </div>
+                  <div style={styles.tableWrap}>
+                    <table style={styles.table}>
+                      <thead>
+                        <tr style={styles.thRow}>
+                          <th style={styles.th}>NO</th>
+                          <th style={styles.th}>KATEGORI STATUS</th>
+                          <th style={styles.th}>JUMLAH DOKUMEN</th>
+                          <th style={styles.th}>TOTAL MANFAAT</th>
+                          <th style={styles.th}>PERSENTASE SELESAI</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr style={styles.tr}>
+                          <td style={styles.td}>1</td>
+                          <td style={styles.td}><strong>{penyelesaianJenis}</strong></td>
+                          <td style={styles.td}>12 Dokumen</td>
+                          <td style={styles.td}><strong>Rp 1.593.500.000</strong></td>
+                          <td style={styles.td}><span style={{ color: '#16a34a', fontWeight: 'bold' }}>100% Selesai</span></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
         </main>
       </div>
+
+      {/* ========================================================= */}
+      {/* MODAL PREVIEW LAPORAN UTANG KLAIM B-2 (DENGAN REKAP DATA)  */}
+      {/* ========================================================= */}
+      {showHutangPreviewModal && (
+        <div style={styles.modalBackdrop}>
+          <div style={{ ...styles.modalContainer, maxWidth: '1100px' }}>
+            <div style={styles.modalHeader}>
+              <div>
+                <div style={{ fontSize: 10, color: '#f59e0b', fontWeight: 'bold' }}>PREVIEW FORMAT LAPORAN UTANG KLAIM B-2</div>
+                <h2 style={{ fontSize: 16, marginTop: 2 }}>Laporan Penyelenggaraan Program — Periode Triwulan {hutangTriwulan} Tahun {hutangTahun}</h2>
+              </div>
+              <button style={styles.closeBtn} onClick={() => setShowHutangPreviewModal(false)}>✕</button>
+            </div>
+
+            <div style={{ padding: '24px', overflowY: 'auto', flex: 1, backgroundColor: '#ffffff' }}>
+              {/* OFFICIAL B-2 REPORT HEADER (CENTER ALIGNED EXACTLY AS SCREENSHOT B-2) */}
+              <div style={{ textAlign: 'center', marginBottom: 20, fontFamily: 'Arial, sans-serif' }}>
+                <div style={{ fontSize: 13, fontWeight: 'bold' }}>PENGELOLA PROGRAM</div>
+                <div style={{ fontSize: 13, fontWeight: 'bold' }}>LAPORAN PENYELENGGARAAN PROGRAM</div>
+                <div style={{ fontSize: 12, fontWeight: 'bold' }}>PROGRAM TABUNGAN HARI TUA PRAJURIT TENTARA NASIONAL INDONESIA,</div>
+                <div style={{ fontSize: 12, fontWeight: 'bold' }}>ANGGOTA KEPOLISIAN NEGARA REPUBLIK INDONESIA, DAN PEGAWAI APARATUR SIPIL NEGARA DI LINGKUNGAN</div>
+                <div style={{ fontSize: 12, fontWeight: 'bold' }}>KEMENTERIAN PERTAHANAN DAN KEPOLISIAN NEGARA REPUBLIK INDONESIA</div>
+                <div style={{ fontSize: 13, fontWeight: 'bold', marginTop: 6, color: '#0b1329' }}>B-2. LAPORAN UTANG KLAIM</div>
+                <div style={{ fontSize: 12, fontWeight: 'bold', marginTop: 2 }}>PERIODE TRIWULAN : {hutangTriwulan} TAHUN {hutangTahun}</div>
+              </div>
+
+              {/* OFFICIAL EXCEL FORMAT B-2 MULTI-COLUMN TABLE */}
+              <div style={{ overflowX: 'auto', border: '1px solid #000' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10px', textAlign: 'center', fontFamily: 'Arial, sans-serif' }}>
+                  <thead>
+                    <tr style={{ backgroundColor: '#f1f5f9' }}>
+                      <th rowSpan={3} style={styles.thExcel}>PP</th>
+                      <th rowSpan={3} style={styles.thExcel}>PROG</th>
+                      <th rowSpan={2} style={styles.thExcel}>PROGRAM / MANFAAT</th>
+                      <th colSpan={2} style={styles.thExcel}>UTANG KLAIM AKHIR TRIWULAN/TAHUN LALU</th>
+                      <th colSpan={2} style={styles.thExcel}>KLAIM YANG DISETUJUI TRIWULAN/TAHUN BERJALAN TETAPI BELUM DIBAYAR</th>
+                      <th colSpan={2} style={styles.thExcel}>UTANG KLAIM AKHIR TRIWULAN/TAHUN LALU YANG SUDAH DIBAYAR</th>
+                      <th colSpan={2} style={styles.thExcel}>UTANG KLAIM AKHIR TRIWULAN/TAHUN BERJALAN</th>
+                    </tr>
+                    <tr style={{ backgroundColor: '#f1f5f9' }}>
+                      <th style={styles.thExcel}>JML PESERTA</th><th style={styles.thExcel}>RP JUTA</th>
+                      <th style={styles.thExcel}>JML PESERTA</th><th style={styles.thExcel}>RP JUTA</th>
+                      <th style={styles.thExcel}>JML PESERTA</th><th style={styles.thExcel}>RP JUTA</th>
+                      <th style={styles.thExcel}>JML PESERTA</th><th style={styles.thExcel}>RP JUTA</th>
+                    </tr>
+                    {/* FORMULA / NUMBERING ROW */}
+                    <tr style={{ backgroundColor: '#e2e8f0', fontSize: '9px', fontWeight: 'bold' }}>
+                      <td style={styles.tdExcel}>1</td>
+                      <td style={styles.tdExcel}>2</td>
+                      <td style={styles.tdExcel}>3</td>
+                      <td style={styles.tdExcel}>4</td>
+                      <td style={styles.tdExcel}>5</td>
+                      <td style={styles.tdExcel}>6</td>
+                      <td style={styles.tdExcel}>7</td>
+                      <td style={styles.tdExcel}>8</td>
+                      <td style={styles.tdExcel}>9</td>
+                      <td style={styles.tdExcel}>10</td>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td style={styles.tdExcel}>PP67</td>
+                      <td style={styles.tdExcel}>THT</td>
+                      <td style={{ ...styles.tdExcel, textAlign: 'left', fontWeight: 'bold' }}>SA</td>
+                      <td style={styles.tdExcel}>1</td>
+                      <td style={styles.tdExcel}>1.734.900</td>
+                      <td style={styles.tdExcel}>-</td>
+                      <td style={styles.tdExcel}>-</td>
+                      <td style={styles.tdExcel}>-</td>
+                      <td style={styles.tdExcel}>-</td>
+                      <td style={styles.tdExcel}>1</td>
+                      <td style={styles.tdExcel}>1.734.900</td>
+                    </tr>
+                    <tr>
+                      <td style={styles.tdExcel}>PP67</td>
+                      <td style={styles.tdExcel}>THT</td>
+                      <td style={{ ...styles.tdExcel, textAlign: 'left', fontWeight: 'bold' }}>SNTA</td>
+                      <td style={styles.tdExcel}>-</td>
+                      <td style={styles.tdExcel}>-</td>
+                      <td style={styles.tdExcel}>-</td>
+                      <td style={styles.tdExcel}>-</td>
+                      <td style={styles.tdExcel}>-</td>
+                      <td style={styles.tdExcel}>-</td>
+                      <td style={styles.tdExcel}>0</td>
+                      <td style={styles.tdExcel}>0</td>
+                    </tr>
+                    <tr>
+                      <td style={styles.tdExcel}>PP67</td>
+                      <td style={styles.tdExcel}>THT</td>
+                      <td style={{ ...styles.tdExcel, textAlign: 'left', fontWeight: 'bold' }}>SNTA BERHENTI TANPA HAK PENSIUN</td>
+                      <td style={styles.tdExcel}>12</td>
+                      <td style={styles.tdExcel}>90.592.400</td>
+                      <td style={styles.tdExcel}>-</td>
+                      <td style={styles.tdExcel}>-</td>
+                      <td style={styles.tdExcel}>-</td>
+                      <td style={styles.tdExcel}>-</td>
+                      <td style={styles.tdExcel}>12</td>
+                      <td style={styles.tdExcel}>90.592.400</td>
+                    </tr>
+                    <tr>
+                      <td style={styles.tdExcel}>PP67</td>
+                      <td style={styles.tdExcel}>THT</td>
+                      <td style={{ ...styles.tdExcel, textAlign: 'left', fontWeight: 'bold' }}>SNTA BERHENTI DGN HAK TUNJANGAN</td>
+                      <td style={styles.tdExcel}>-</td>
+                      <td style={styles.tdExcel}>-</td>
+                      <td style={styles.tdExcel}>-</td>
+                      <td style={styles.tdExcel}>-</td>
+                      <td style={styles.tdExcel}>-</td>
+                      <td style={styles.tdExcel}>-</td>
+                      <td style={styles.tdExcel}>0</td>
+                      <td style={styles.tdExcel}>0</td>
+                    </tr>
+                    <tr>
+                      <td style={styles.tdExcel}>PP67</td>
+                      <td style={styles.tdExcel}>THT</td>
+                      <td style={{ ...styles.tdExcel, textAlign: 'left', fontWeight: 'bold' }}>SRK/SNTA</td>
+                      <td style={styles.tdExcel}>-</td>
+                      <td style={styles.tdExcel}>-</td>
+                      <td style={styles.tdExcel}>-</td>
+                      <td style={styles.tdExcel}>-</td>
+                      <td style={styles.tdExcel}>-</td>
+                      <td style={styles.tdExcel}>-</td>
+                      <td style={styles.tdExcel}>0</td>
+                      <td style={styles.tdExcel}>0</td>
+                    </tr>
+                    <tr>
+                      <td style={styles.tdExcel}>PP67</td>
+                      <td style={styles.tdExcel}>THT</td>
+                      <td style={{ ...styles.tdExcel, textAlign: 'left', fontWeight: 'bold' }}>SBP</td>
+                      <td style={styles.tdExcel}>3</td>
+                      <td style={styles.tdExcel}>8.000.000</td>
+                      <td style={styles.tdExcel}>-</td>
+                      <td style={styles.tdExcel}>-</td>
+                      <td style={styles.tdExcel}>-</td>
+                      <td style={styles.tdExcel}>-</td>
+                      <td style={styles.tdExcel}>3</td>
+                      <td style={styles.tdExcel}>8.000.000</td>
+                    </tr>
+                    <tr>
+                      <td style={styles.tdExcel}>PP67</td>
+                      <td style={styles.tdExcel}>THT</td>
+                      <td style={{ ...styles.tdExcel, textAlign: 'left', fontWeight: 'bold' }}>SBP1/S</td>
+                      <td style={styles.tdExcel}>-</td>
+                      <td style={styles.tdExcel}>-</td>
+                      <td style={styles.tdExcel}>-</td>
+                      <td style={styles.tdExcel}>-</td>
+                      <td style={styles.tdExcel}>-</td>
+                      <td style={styles.tdExcel}>-</td>
+                      <td style={styles.tdExcel}>0</td>
+                      <td style={styles.tdExcel}>0</td>
+                    </tr>
+                    <tr>
+                      <td style={styles.tdExcel}>PP67</td>
+                      <td style={styles.tdExcel}>THT</td>
+                      <td style={{ ...styles.tdExcel, textAlign: 'left', fontWeight: 'bold' }}>SBP1/S PESERTA AKTIF</td>
+                      <td style={styles.tdExcel}>2</td>
+                      <td style={styles.tdExcel}>6.000.000</td>
+                      <td style={styles.tdExcel}>-</td>
+                      <td style={styles.tdExcel}>-</td>
+                      <td style={styles.tdExcel}>-</td>
+                      <td style={styles.tdExcel}>-</td>
+                      <td style={styles.tdExcel}>2</td>
+                      <td style={styles.tdExcel}>6.000.000</td>
+                    </tr>
+                    <tr>
+                      <td style={styles.tdExcel}>PP67</td>
+                      <td style={styles.tdExcel}>THT</td>
+                      <td style={{ ...styles.tdExcel, textAlign: 'left', fontWeight: 'bold' }}>SBP1/S PESERTA PENSIUN</td>
+                      <td style={styles.tdExcel}>5</td>
+                      <td style={styles.tdExcel}>12.000.000</td>
+                      <td style={styles.tdExcel}>-</td>
+                      <td style={styles.tdExcel}>-</td>
+                      <td style={styles.tdExcel}>-</td>
+                      <td style={styles.tdExcel}>-</td>
+                      <td style={styles.tdExcel}>5</td>
+                      <td style={styles.tdExcel}>12.000.000</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* DUA TOMBOL UNDUH BERBEDA (MERAH PDF & HIJAU EXCEL XLSX) */}
+            <div style={styles.modalFooter}>
+              <button style={styles.secBtn} onClick={() => setShowHutangPreviewModal(false)}>Tutup</button>
+              
+              {/* TOMBOL MERAH UNTUK PDF */}
+              <button style={styles.btnPdfRed} onClick={handleDownloadHutangPdf}>
+                📄 Unduh PDF (.pdf)
+              </button>
+
+              {/* TOMBOL HIJAU UNTUK EXCEL (.xlsx) */}
+              <button style={styles.btnExcelGreen} onClick={handleDownloadHutangExcel}>
+                📊 Unduh Excel (.xlsx)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* MODAL PREVIEW LAPORAN PENYELESAIAN KLAIM E-1 (GAMBAR 3)   */}
+      {/* ========================================================= */}
+      {showReportPreviewModal && (
+        <div style={styles.modalBackdrop}>
+          <div style={{ ...styles.modalContainer, maxWidth: '1100px' }}>
+            <div style={styles.modalHeader}>
+              <div>
+                <div style={{ fontSize: 10, color: '#f59e0b', fontWeight: 'bold' }}>PREVIEW FORMAT LAPORAN PENYELESAIAN KLAIM E-1</div>
+                <h2 style={{ fontSize: 16, marginTop: 2 }}>Laporan Penyelenggaraan Program — Periode Triwulan {penyelesaianTriwulan} Tahun {penyelesaianTahun}</h2>
+              </div>
+              <button style={styles.closeBtn} onClick={() => setShowReportPreviewModal(false)}>✕</button>
+            </div>
+
+            <div style={{ padding: '24px', overflowY: 'auto', flex: 1, backgroundColor: '#ffffff' }}>
+              <div style={{ textAlign: 'center', marginBottom: 20, fontFamily: 'Arial, sans-serif' }}>
+                <div style={{ fontSize: 13, fontWeight: 'bold' }}>PENGELOLA PROGRAM</div>
+                <div style={{ fontSize: 13, fontWeight: 'bold' }}>LAPORAN PENYELENGGARAAN PROGRAM</div>
+                <div style={{ fontSize: 12, fontWeight: 'bold' }}>PROGRAM JAMINAN KECELAKAAN KERJA DAN JAMINAN KEMATIAN PRAJURIT TENTARA NASIONAL INDONESIA</div>
+                <div style={{ fontSize: 12, fontWeight: 'bold' }}>ANGGOTA KEPOLISIAN NEGARA REPUBLIK INDONESIA, DAN PEGAWAI APARATUR SIPIL NEGARA DI LINGKUNGAN</div>
+                <div style={{ fontSize: 12, fontWeight: 'bold' }}>KEMENTERIAN PERTAHANAN DAN KEPOLISIAN NEGARA REPUBLIK INDONESIA</div>
+                <div style={{ fontSize: 13, fontWeight: 'bold', marginTop: 6, color: '#0b1329' }}>E-1. LAPORAN PENYELESAIAN KLAIM</div>
+                <div style={{ fontSize: 12, fontWeight: 'bold', marginTop: 2 }}>PERIODE TRIWULAN : {penyelesaianTriwulan} TAHUN {penyelesaianTahun}</div>
+              </div>
+
+              <div style={{ overflowX: 'auto', border: '1px solid #000' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10px', textAlign: 'center', fontFamily: 'Arial, sans-serif' }}>
+                  <thead>
+                    <tr style={{ backgroundColor: '#f1f5f9' }}>
+                      <th rowSpan={2} style={styles.thExcel}>PP</th>
+                      <th rowSpan={2} style={styles.thExcel}>PROG</th>
+                      <th rowSpan={2} style={styles.thExcel}>PROGRAM MANFAAT</th>
+                      <th colSpan={2} style={styles.thExcel}>KLAIM DALAM PROSES AKHIR TRIWULAN/TAHUN LALU</th>
+                      <th colSpan={2} style={styles.thExcel}>KLAIM YANG DIAJUKAN TRIWULAN/TAHUN BERJALAN</th>
+                      <th colSpan={2} style={styles.thExcel}>KLAIM YANG HARUS DISELESAIKAN TRIWULAN/TAHUN BERJALAN KLAIM YANG HARUS DIPROSES</th>
+                      <th colSpan={2} style={styles.thExcel}>KLAIM YANG DISETUJUI TRIWULAN/TAHUN BERJALAN DAN TELAH DI BAYAR</th>
+                      <th colSpan={2} style={{ ...styles.thExcel, backgroundColor: '#dcfce7' }}>KLAIM YANG DISETUJUI TRIWULAN/TAHUN BERJALAN TAPI BELUM DI BAYAR</th>
+                      <th colSpan={2} style={styles.thExcel}>KLAIM DI TOLAK</th>
+                      <th colSpan={2} style={styles.thExcel}>KLAIM DALAM PROSES AKHIR TRIWULAN/TAHUN BERJALAN</th>
+                    </tr>
+                    <tr style={{ backgroundColor: '#f1f5f9' }}>
+                      <th style={styles.thExcel}>JML PESERTA</th><th style={styles.thExcel}>RP JUTA</th>
+                      <th style={styles.thExcel}>JML PESERTA</th><th style={styles.thExcel}>RP JUTA</th>
+                      <th style={styles.thExcel}>JML PESERTA</th><th style={styles.thExcel}>RP JUTA</th>
+                      <th style={styles.thExcel}>JML PESERTA</th><th style={styles.thExcel}>RP JUTA</th>
+                      <th style={{ ...styles.thExcel, backgroundColor: '#dcfce7' }}>JML PESERTA</th><th style={{ ...styles.thExcel, backgroundColor: '#dcfce7' }}>RP JUTA</th>
+                      <th style={styles.thExcel}>JML PESERTA</th><th style={styles.thExcel}>RP JUTA</th>
+                      <th style={styles.thExcel}>JML PESERTA</th><th style={styles.thExcel}>RP JUTA</th>
+                    </tr>
+                    <tr style={{ backgroundColor: '#e2e8f0', fontSize: '9px', fontWeight: 'bold' }}>
+                      <td style={styles.tdExcel}>1</td>
+                      <td style={styles.tdExcel}>2</td>
+                      <td style={styles.tdExcel}>3</td>
+                      <td style={styles.tdExcel}>4</td>
+                      <td style={styles.tdExcel}>5</td>
+                      <td style={styles.tdExcel}>6</td>
+                      <td style={styles.tdExcel}>7=3+5</td>
+                      <td style={styles.tdExcel}>8=4+6</td>
+                      <td style={styles.tdExcel}>9</td>
+                      <td style={styles.tdExcel}>10</td>
+                      <td style={styles.tdExcel}>11</td>
+                      <td style={styles.tdExcel}>12</td>
+                      <td style={styles.tdExcel}>13</td>
+                      <td style={styles.tdExcel}>14</td>
+                      <td style={styles.tdExcel}>15=7-9-11-13</td>
+                      <td style={styles.tdExcel}>16=8-10-12-14</td>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td style={styles.tdExcel}>PP67</td>
+                      <td style={styles.tdExcel}>THT</td>
+                      <td style={{ ...styles.tdExcel, textAlign: 'left', fontWeight: 'bold' }}>SA</td>
+                      <td style={styles.tdExcel}>0</td>
+                      <td style={styles.tdExcel}>0</td>
+                      <td style={styles.tdExcel}>1</td>
+                      <td style={styles.tdExcel}>71.871,800</td>
+                      <td style={styles.tdExcel}>1</td>
+                      <td style={styles.tdExcel}>71.871,800</td>
+                      <td style={styles.tdExcel}>1</td>
+                      <td style={styles.tdExcel}>71.871,800</td>
+                      <td style={styles.tdExcel}>0</td>
+                      <td style={styles.tdExcel}>0</td>
+                      <td style={styles.tdExcel}>0</td>
+                      <td style={styles.tdExcel}>0</td>
+                      <td style={styles.tdExcel}>0</td>
+                      <td style={styles.tdExcel}>0</td>
+                    </tr>
+                    <tr>
+                      <td style={styles.tdExcel}>PP67</td>
+                      <td style={styles.tdExcel}>THT</td>
+                      <td style={{ ...styles.tdExcel, textAlign: 'left', fontWeight: 'bold' }}>SNTA</td>
+                      <td style={styles.tdExcel}>0</td>
+                      <td style={styles.tdExcel}>0</td>
+                      <td style={styles.tdExcel}>0</td>
+                      <td style={styles.tdExcel}>0</td>
+                      <td style={styles.tdExcel}>0</td>
+                      <td style={styles.tdExcel}>0</td>
+                      <td style={styles.tdExcel}>0</td>
+                      <td style={styles.tdExcel}>0</td>
+                      <td style={styles.tdExcel}>0</td>
+                      <td style={styles.tdExcel}>0</td>
+                      <td style={styles.tdExcel}>0</td>
+                      <td style={styles.tdExcel}>0</td>
+                      <td style={styles.tdExcel}>0</td>
+                      <td style={styles.tdExcel}>0</td>
+                    </tr>
+                    <tr>
+                      <td style={styles.tdExcel}>PP67</td>
+                      <td style={styles.tdExcel}>THT</td>
+                      <td style={{ ...styles.tdExcel, textAlign: 'left', fontWeight: 'bold' }}>SNTA BERHENTI TANPA HAK</td>
+                      <td style={styles.tdExcel}>0</td>
+                      <td style={styles.tdExcel}>0</td>
+                      <td style={styles.tdExcel}>0</td>
+                      <td style={styles.tdExcel}>0</td>
+                      <td style={styles.tdExcel}>0</td>
+                      <td style={styles.tdExcel}>0</td>
+                      <td style={styles.tdExcel}>0</td>
+                      <td style={styles.tdExcel}>0</td>
+                      <td style={styles.tdExcel}>0</td>
+                      <td style={styles.tdExcel}>0</td>
+                      <td style={styles.tdExcel}>0</td>
+                      <td style={styles.tdExcel}>0</td>
+                      <td style={styles.tdExcel}>0</td>
+                      <td style={styles.tdExcel}>0</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div style={styles.modalFooter}>
+              <button style={styles.secBtn} onClick={() => setShowReportPreviewModal(false)}>Tutup</button>
+              
+              <button style={styles.btnPdfRed} onClick={handleDownloadPdf}>
+                📄 Unduh PDF (.pdf)
+              </button>
+
+              <button style={styles.btnExcelGreen} onClick={handleDownloadExcel}>
+                📊 Unduh Excel (.xlsx)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MODAL FORM 2-TAB DETAIL PESERTA */}
       {selectedClaim && (
         <div style={styles.modalBackdrop}>
           <div style={styles.modalContainer}>
-            {/* MODAL HEADER */}
             <div style={styles.modalHeader}>
               <div>
                 <div style={{ fontSize: 10, color: '#f59e0b', fontWeight: 'bold' }}>KOREKSI DATA PERHITUNGAN MANFAAT PESERTA</div>
@@ -430,7 +1119,6 @@ export default function App() {
               <button style={styles.closeBtn} onClick={() => setSelectedClaimId(null)}>✕</button>
             </div>
 
-            {/* MODAL TAB BAR */}
             <div style={styles.modalTabBar}>
               <button 
                 style={modalTab === 'profil' ? styles.modalTabBtnActive : styles.modalTabBtn}
@@ -446,9 +1134,7 @@ export default function App() {
               </button>
             </div>
 
-            {/* MODAL BODY */}
             <div style={styles.modalBody}>
-              {/* TAB 1: PROFIL PESERTA */}
               {modalTab === 'profil' && (
                 <div>
                   <div style={styles.bannerTitle}>Form Profil Pribadi Peserta</div>
@@ -473,7 +1159,6 @@ export default function App() {
                 </div>
               )}
 
-              {/* TAB 2: MASA KERJA */}
               {modalTab === 'masakerja' && (
                 <div>
                   <div style={styles.bannerTitle}>Data Masa Kerja & Parameter Koreksi</div>
@@ -495,7 +1180,6 @@ export default function App() {
                     <StripeRow label="Tanggal Meninggal" value={selectedClaim.tglMeninggal} />
                     <StripeRow label="Tanggal Non Aktif" value={selectedClaim.tglNonAktif} alt />
 
-                    {/* MKG AWAL & SKORSING LISTED SEQUENTIALLY WITHOUT HIGHLIGHT */}
                     <StripeRow 
                       label="Masa Kerja Golongan (MKG) Awal" 
                       value={`${selectedClaim.mkgAwalTahun} Tahun`} 
@@ -509,7 +1193,6 @@ export default function App() {
                     />
                   </div>
 
-                  {/* REALTIME CALCULATOR RESULTS */}
                   <div style={styles.calcBox}>
                     <div style={{ fontWeight: 'bold', fontSize: 13, color: '#0f172a', marginBottom: 12 }}>
                       ⚡ Hasil Perhitungan Ulang Nilai Manfaat Klaim (Real-time Calculator)
@@ -533,7 +1216,6 @@ export default function App() {
               )}
             </div>
 
-            {/* MODAL FOOTER */}
             <div style={styles.modalFooter}>
               <button style={styles.secBtn} onClick={() => setSelectedClaimId(null)}>Tutup</button>
               <button style={styles.priBtn} onClick={handleSaveModal}>Hitung Ulang & Simpan Perubahan</button>
@@ -622,7 +1304,7 @@ function BenefitCard({ title, oldVal, newVal }) {
 }
 
 // ==========================================
-// UNIFIED INLINE STYLES (SIDEBAR RAPAT KE ATAS)
+// UNIFIED INLINE STYLES (CAMELCASE JS OBJECTS)
 // ==========================================
 const styles = {
   appRoot: {
@@ -673,10 +1355,27 @@ const styles = {
     display: "flex", flexDirection: "column", justifyContent: "flex-start", gap: "20px"
   },
   sidebarSectionLabel: { fontSize: "11px", fontWeight: "bold", color: "#94a3b8", marginBottom: "8px" },
+  sidebarNavItem: {
+    padding: "10px 12px", borderRadius: "8px", fontWeight: "500", fontSize: "13px", color: "#475569",
+    cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center"
+  },
   sidebarNavItemActive: {
     backgroundColor: "#eff6ff", color: "#2563eb", padding: "10px 12px",
-    borderRadius: "8px", fontWeight: "bold", fontSize: "13px",
+    borderRadius: "8px", fontWeight: "bold", fontSize: "13px", cursor: "pointer",
     display: "flex", justifyContent: "space-between", alignItems: "center"
+  },
+  sidebarParentNav: {
+    padding: "10px 12px", borderRadius: "8px", fontWeight: "600", fontSize: "13px", color: "#334155",
+    cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center",
+    backgroundColor: "#f8fafc"
+  },
+  sidebarSubItem: {
+    padding: "8px 12px", borderRadius: "6px", fontSize: "12px", fontWeight: "500", color: "#64748b",
+    cursor: "pointer", transition: "background 0.15s"
+  },
+  sidebarSubItemActive: {
+    padding: "8px 12px", borderRadius: "6px", fontSize: "12px", fontWeight: "bold", color: "#2563eb",
+    backgroundColor: "#e0f2fe", cursor: "pointer"
   },
   sidebarActivePill: { background: "#dbeafe", color: "#1d4ed8", padding: "2px 6px", borderRadius: "4px", fontSize: "10px" },
   sidebarFooter: { background: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: "8px", padding: "12px" },
@@ -724,10 +1423,26 @@ const styles = {
   modalFooter: { padding: "14px 20px", background: "#f8fafc", borderTop: "1px solid #cbd5e1", display: "flex", justifyContent: "flex-end", gap: "12px" },
   secBtn: { padding: "8px 16px", background: "#e2e8f0", border: "none", borderRadius: "6px", fontWeight: "bold", fontSize: "13px", cursor: "pointer" },
   priBtn: { padding: "8px 16px", background: "#2563eb", color: "#fff", border: "none", borderRadius: "6px", fontWeight: "bold", fontSize: "13px", cursor: "pointer" },
+  btnPdfRed: { padding: "8px 18px", background: "#dc2626", color: "#ffffff", border: "none", borderRadius: "6px", fontWeight: "bold", fontSize: "13px", cursor: "pointer" },
+  btnExcelGreen: { padding: "8px 18px", background: "#16a34a", color: "#ffffff", border: "none", borderRadius: "6px", fontWeight: "bold", fontSize: "13px", cursor: "pointer" },
   subModalContainer: { background: "#fff", width: "100%", maxWidth: "440px", borderRadius: "12px", overflow: "hidden" },
   subModalHeader: { background: "#1e293b", padding: "14px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" },
   editInput: { width: "100%", padding: "10px 14px", border: "2px solid #60a5fa", borderRadius: "6px", fontSize: "14px", fontWeight: "bold", outline: "none" },
   suffixText: { position: "absolute", right: "12px", fontWeight: "bold", color: "#64748b", fontSize: "12px" },
   toastWrap: { position: "fixed", bottom: "24px", right: "24px", zIndex: 2000, display: "flex", flexDirection: "column", gap: "8px" },
-  toast: { background: "#0f172a", color: "#fff", padding: "12px 18px", borderRadius: "8px", fontSize: "13px", fontWeight: "bold", borderLeft: "4px solid #10b981" }
+  toast: { background: "#0f172a", color: "#fff", padding: "12px 18px", borderRadius: "8px", fontSize: "13px", fontWeight: "bold", borderLeft: "4px solid #10b981" },
+
+  // STYLES FOR REPORT PAGES & EXCEL FORMAT PREVIEW
+  reportCardWrapper: { background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: "8px", padding: "20px" },
+  filterCardBox: { border: "1px solid #cbd5e1", borderRadius: "4px", overflow: "hidden" },
+  filterBarHeader: { background: "#0b1329", color: "#ffffff", padding: "10px 14px", fontSize: "13px", fontWeight: "bold", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" },
+  filterBarBody: { padding: "16px", backgroundColor: "#ffffff" },
+  formGrid3: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px" },
+  formFieldGroup: { display: "flex", flexDirection: "column", gap: "4px" },
+  formLabel: { fontSize: "12px", fontWeight: "bold", color: "#1e293b" },
+  formControlInput: { padding: "8px 10px", border: "1px solid #cbd5e1", borderRadius: "4px", fontSize: "13px", outline: "none" },
+  formControlSelect: { padding: "8px 10px", border: "1px solid #cbd5e1", borderRadius: "4px", fontSize: "13px", color: "#334155", backgroundColor: "#ffffff", outline: "none", cursor: "pointer" },
+  btnCetak: { background: "#10b981", color: "#ffffff", border: "none", padding: "8px 24px", borderRadius: "4px", fontSize: "13px", fontWeight: "bold", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "6px" },
+  thExcel: { border: "1px solid #94a3b8", padding: "6px 8px", fontSize: "10px", fontWeight: "bold" },
+  tdExcel: { border: "1px solid #cbd5e1", padding: "6px 8px", fontSize: "10px" }
 };
