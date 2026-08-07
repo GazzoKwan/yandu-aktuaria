@@ -1,5 +1,5 @@
 {
-  "summary": "Removed the workflow step banner and feature cards from both Report Pelayanan sub-menus in src/App.jsx.",
-  "updatedAt": "2026-08-03T17:54:18.497469200Z",
+  "summary": "Updated src/App.jsx to allow Divisi Aktuaria to view full details of MKG Awal and Skorsing in Read-Only mode while preventing any edits.",
+  "updatedAt": "2026-08-07T06:17:30.327261800Z",
   "userFacing": true
 }
