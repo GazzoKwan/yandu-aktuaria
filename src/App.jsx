@@ -171,6 +171,7 @@ const initialClaimData = [
 ];
 
 // RESTRUCTURED AKTUARIA PARAMETERS WITH RATE HISTORY (UC-AKT-005)
+// SINGLE UNIFIED PARAMETER FOR THT ALLOCATION: ALOKASI MANFAAT PESERTA & DANA RISIKO (DEFAULT: 90% / 10%)
 const initialActuaryParameters = [
   {
     id: 1,
@@ -237,11 +238,40 @@ const initialActuaryParameters = [
         status: "HISTORI"
       }
     ]
+  },
+  {
+    id: 4,
+    nama: "Alokasi Manfaat Peserta & Dana Risiko",
+    kategori: "Tabungan Hari Tua (THT)",
+    history: [
+      {
+        id: 401,
+        persen: 90.00,
+        tglMulai: "2026-01-01",
+        tglSelesai: "2026-12-31",
+        diubahOleh: "Divisi Aktuaria - Dr. Hendra",
+        landasan: "SK Direksi No. 18/2026 (90% Peserta / 10% Uang Risiko)",
+        status: "AKTIF"
+      }
+    ]
   }
 ];
 
 // DETAILED AUDIT LOGS FOR PARAMETER CHANGES
 const initialParameterChangeLogs = [
+  {
+    id: 401,
+    paramId: 4,
+    namaParam: "Alokasi Manfaat Peserta & Dana Risiko",
+    timestamp: "01-01-2026 09:00:00",
+    aktor: "Divisi Aktuaria - Dr. Hendra",
+    nilaiLama: "100.00 % (Peserta)",
+    nilaiBaru: "90.00 % (Peserta) / 10.00 % (Risiko)",
+    tglMulai: "2026-01-01",
+    tglSelesai: "2026-12-31",
+    landasan: "SK Direksi No. 18/2026 Alokasi Risiko THT",
+    tipeAksi: "Penetapan Parameter Baru"
+  },
   {
     id: 101,
     paramId: 1,
@@ -329,15 +359,20 @@ function formatRupiah(number) {
   }).format(number || 0);
 }
 
-// UPDATED BENEFIT CALCULATOR SUPPORTING MKG AWAL TAHUN & BULAN
-function calculateBenefits(gajiPokok, masaKerjaBulan, skorsingBulan, mkgAwalTahun, mkgAwalBulan = 0) {
+// UPDATED BENEFIT CALCULATOR SUPPORTING MKG AWAL TAHUN & BULAN & UNIFIED DISBURSEMENT ALLOCATION (% PESERTA VS % DANA RISIKO)
+function calculateBenefits(gajiPokok, masaKerjaBulan, skorsingBulan, mkgAwalTahun, mkgAwalBulan = 0, persenManfaatPeserta = 90) {
   const mkgAwalTotalYears = (mkgAwalTahun || 0) + ((mkgAwalBulan || 0) / 12);
   const effMasaKerjaYears = Math.max(0, (masaKerjaBulan - (skorsingBulan || 0)) / 12) + mkgAwalTotalYears;
   const ta = gajiPokok * 12 * (effMasaKerjaYears / 10) * 1.15;
   const ntta = gajiPokok * 0.95 * effMasaKerjaYears * 1.05;
   const ntip = gajiPokok * 0.75 * effMasaKerjaYears * 1.02;
-  const total = ta + ntta + ntip;
-  return { ta, ntta, ntip, total, effMasaKerjaYears };
+  const totalKotor = ta + ntta + ntip;
+  
+  const persenRisiko = Math.max(0, 100 - persenManfaatPeserta);
+  const hakPeserta = totalKotor * (persenManfaatPeserta / 100);
+  const uangRisiko = totalKotor * (persenRisiko / 100);
+
+  return { ta, ntta, ntip, total: totalKotor, hakPeserta, uangRisiko, effMasaKerjaYears, persenRisiko };
 }
 
 // Calculate month difference between two dates
@@ -353,7 +388,7 @@ function calculateMonthDiff(d1, d2) {
 // Helper: Determine exact status of skorsing ('Aktif', 'Belum Aktif', 'History')
 function getSkorsingStatus(tglMulai, tglAkhir) {
   if (!tglMulai || !tglAkhir) return 'Aktif';
-  const todayStr = '2026-08-06';
+  const todayStr = new Date().toISOString().split('T')[0];
   if (tglMulai > todayStr) return 'Belum Aktif';
   if (tglAkhir < todayStr) return 'History';
   return 'Aktif';
@@ -466,6 +501,11 @@ export default function App() {
   const [skorsingNoSkep, setSkorsingNoSkep] = useState('SKEP/SKOR/2025/099');
   const [skorsingFileName, setSkorsingFileName] = useState('');
   const [skorsingLandasan, setSkorsingLandasan] = useState('');
+
+  // DYNAMICALLY FETCH ACTIVE ALLOCATION RATE FROM UNIFIED PARAMETER (PARAM #4)
+  const paramAlokasi = actuaryParams.find(p => p.id === 4);
+  const rateManfaatPeserta = paramAlokasi ? (paramAlokasi.history.find(h => h.status === 'AKTIF')?.persen || 90) : 90;
+  const rateUangRisiko = Math.max(0, 100 - rateManfaatPeserta);
 
   // Handle Role Switching
   const handleRoleChange = (newRole) => {
@@ -669,6 +709,7 @@ export default function App() {
       return param;
     }));
 
+    const risikoCalculated = Math.max(0, 100 - rateVal);
     const newLogObj = {
       id: Date.now(),
       paramId: selectedParam.id,
@@ -676,7 +717,7 @@ export default function App() {
       timestamp: new Date().toLocaleString('id-ID'),
       aktor: "Divisi Aktuaria - Dr. Hendra",
       nilaiLama: `${selectedParam.history[0]?.persen || 0} %`,
-      nilaiBaru: `${rateVal} %`,
+      nilaiBaru: selectedParam.id === 4 ? `${rateVal} % (Peserta) / ${risikoCalculated} % (Risiko)` : `${rateVal} %`,
       tglMulai: newRateTglMulai,
       tglSelesai: newRateTglSelesai,
       landasan: newRateLandasan || "SK Direksi Penyesuaian Aktuaria",
@@ -748,8 +789,8 @@ export default function App() {
     setShowHutangPreviewModal(false);
   };
 
-  const baseCalc = selectedClaim ? calculateBenefits(selectedClaim.gajiPokok, selectedClaim.masaKerjaBulan, 0, 0, 0) : null;
-  const newCalc = selectedClaim ? calculateBenefits(selectedClaim.gajiPokok, selectedClaim.masaKerjaBulan, selectedClaim.skorsingBulan, selectedClaim.mkgAwalTahun, selectedClaim.mkgAwalBulan) : null;
+  const baseCalc = selectedClaim ? calculateBenefits(selectedClaim.gajiPokok, selectedClaim.masaKerjaBulan, 0, 0, 0, rateManfaatPeserta) : null;
+  const newCalc = selectedClaim ? calculateBenefits(selectedClaim.gajiPokok, selectedClaim.masaKerjaBulan, selectedClaim.skorsingBulan, selectedClaim.mkgAwalTahun, selectedClaim.mkgAwalBulan, rateManfaatPeserta) : null;
 
   return (
     <div style={styles.appRoot}>
@@ -805,7 +846,6 @@ export default function App() {
               onClick={() => setActivePage('dataPeserta')}
             >
               <span>👥 Data Peserta</span>
-              {activePage === 'dataPeserta' && <span style={styles.sidebarActivePill}>AKTIF</span>}
             </div>
 
             {/* MENU: REPORT PELAYANAN (VISIBLE FOR BOTH CSO & AKTUARIA) */}
@@ -846,7 +886,6 @@ export default function App() {
                   onClick={() => setActivePage('reportKU')}
                 >
                   <span>💰 Report KU (Dapem & Non)</span>
-                  {activePage === 'reportKU' && <span style={styles.sidebarActivePill}>AKTIF</span>}
                 </div>
 
                 {/* UC-AKT-005: PERUBAHAN PARAMETER */}
@@ -855,7 +894,6 @@ export default function App() {
                   onClick={() => setActivePage('parameterAktuaria')}
                 >
                   <span>⚙️ Perubahan Parameter</span>
-                  {activePage === 'parameterAktuaria' && <span style={styles.sidebarActivePill}>AKTIF</span>}
                 </div>
 
                 {/* DISABLED AUDIT LOG & TRACKABILITY MENU PER USER REQUEST */}
@@ -966,7 +1004,7 @@ export default function App() {
                   </thead>
                   <tbody>
                     {filteredClaims.map(item => {
-                      const calc = calculateBenefits(item.gajiPokok, item.masaKerjaBulan, item.skorsingBulan, item.mkgAwalTahun, item.mkgAwalBulan);
+                      const calc = calculateBenefits(item.gajiPokok, item.masaKerjaBulan, item.skorsingBulan, item.mkgAwalTahun, item.mkgAwalBulan, rateManfaatPeserta);
                       return (
                         <tr key={item.id} style={styles.tr}>
                           <td style={styles.td}><strong>{item.spNum}</strong></td>
@@ -1453,7 +1491,7 @@ export default function App() {
                       📋 Daftar Parameter Utama Perhitungan Manfaat
                     </h3>
                     <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
-                      Kelola rate persenan, histori tanggal berlaku, dan jejak audit perubahan parameter.
+                      Kelola rate persenan, alokasi risiko THT, histori tanggal berlaku, dan jejak audit perubahan parameter.
                     </div>
                   </div>
                   <div style={{ fontSize: 12, color: '#64748b', background: '#f1f5f9', padding: '6px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
@@ -1485,9 +1523,20 @@ export default function App() {
                             </td>
                             <td style={styles.td}><span style={styles.badge}>{param.kategori}</span></td>
                             <td style={styles.td}>
-                              <span style={{ fontSize: 14, fontWeight: '800', color: '#0f172a', background: '#f1f5f9', border: '1px solid #e2e8f0', padding: '4px 10px', borderRadius: '6px' }}>
-                                {activeRate ? `${activeRate.persen} %` : '-'}
-                              </span>
+                              {param.id === 4 && activeRate ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', whiteSpace: 'nowrap' }}>
+                                  <span style={{ background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '3px 8px', borderRadius: '6px', fontSize: '12px', fontWeight: '800', width: 'fit-content' }}>
+                                    {activeRate.persen}% (Peserta)
+                                  </span>
+                                  <span style={{ background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a', padding: '3px 8px', borderRadius: '6px', fontSize: '12px', fontWeight: '800', width: 'fit-content' }}>
+                                    {Math.max(0, 100 - activeRate.persen)}% (Risiko)
+                                  </span>
+                                </div>
+                              ) : (
+                                <span style={{ fontSize: 13, fontWeight: '800', color: '#0f172a', background: '#f1f5f9', border: '1px solid #e2e8f0', padding: '4px 10px', borderRadius: '6px', whiteSpace: 'nowrap' }}>
+                                  {activeRate ? `${activeRate.persen} %` : '-'}
+                                </span>
+                              )}
                             </td>
                             <td style={styles.td}>
                               <span style={{ fontSize: 12, fontWeight: '600', color: '#1e293b' }}>
@@ -1589,9 +1638,20 @@ export default function App() {
                           </span>
                         </td>
                         <td style={styles.td}>
-                          <span style={{ fontSize: '14px', fontWeight: '800', color: '#0f172a', background: '#f8fafc', border: '1px solid #cbd5e1', padding: '4px 10px', borderRadius: '6px' }}>
-                            {item.persen} %
-                          </span>
+                          {selectedParam.id === 4 ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', whiteSpace: 'nowrap' }}>
+                              <span style={{ background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '3px 8px', borderRadius: '6px', fontSize: '12px', fontWeight: '800', width: 'fit-content' }}>
+                                {item.persen}% (Peserta)
+                              </span>
+                              <span style={{ background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a', padding: '3px 8px', borderRadius: '6px', fontSize: '12px', fontWeight: '800', width: 'fit-content' }}>
+                                {Math.max(0, 100 - item.persen)}% (Risiko)
+                              </span>
+                            </div>
+                          ) : (
+                            <span style={{ fontSize: '13px', fontWeight: '800', color: '#0f172a', background: '#f8fafc', border: '1px solid #cbd5e1', padding: '4px 10px', borderRadius: '6px', whiteSpace: 'nowrap' }}>
+                              {item.persen} %
+                            </span>
+                          )}
                         </td>
                         <td style={styles.td}>
                           <span style={{ fontWeight: '700', color: '#1e293b' }}>
@@ -1634,7 +1694,7 @@ export default function App() {
               <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#1e293b' }}>
-                    Nilai Persenan Rate Baru (%):
+                    {selectedParam.id === 4 ? 'Persentase Manfaat Peserta (%):' : 'Nilai Persenan Rate Baru (%):'}
                   </label>
                   <div style={{ position: 'relative', display: 'flex', alignItems: 'center', width: '100%', boxSizing: 'border-box' }}>
                     <input 
@@ -1643,7 +1703,7 @@ export default function App() {
                       min="0"
                       max="100"
                       style={{ width: '100%', height: '42px', padding: '0 40px 0 14px', border: '2px solid #60a5fa', borderRadius: '8px', fontSize: '14px', fontWeight: 'bold', outline: 'none', backgroundColor: '#f0f9ff', color: '#0f172a', boxSizing: 'border-box' }}
-                      placeholder="Contoh: 0.30"
+                      placeholder="Contoh: 90.00"
                       value={newRatePersen}
                       onChange={(e) => setNewRatePersen(e.target.value)}
                       required
@@ -1651,6 +1711,11 @@ export default function App() {
                     />
                     <span style={{ position: 'absolute', right: '14px', fontWeight: 'bold', color: '#2563eb', fontSize: '14px', pointerEvents: 'none' }}>%</span>
                   </div>
+                  {selectedParam.id === 4 && newRatePersen !== '' && (
+                    <div style={{ fontSize: '11px', color: '#d97706', fontWeight: 'bold', marginTop: '4px' }}>
+                      ⚡ Alokasi Uang Risiko Otomatis: {Math.max(0, 100 - (parseFloat(newRatePersen) || 0)).toFixed(2)}%
+                    </div>
+                  )}
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '18px' }}>
@@ -1687,7 +1752,7 @@ export default function App() {
                   <input 
                     type="text"
                     style={{ width: '100%', height: '42px', padding: '0 14px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '13px', outline: 'none', backgroundColor: '#f8fafc', color: '#0f172a', boxSizing: 'border-box' }}
-                    placeholder="Contoh: SK Direksi No. 55/2026 tentang Evaluasi Rate Suku Bunga"
+                    placeholder="Contoh: SK Direksi No. 55/2026 tentang Kebijakan Alokasi Risiko THT"
                     value={newRateLandasan}
                     onChange={(e) => setNewRateLandasan(e.target.value)}
                     required
@@ -2319,7 +2384,7 @@ export default function App() {
                     <tr style={{ backgroundColor: '#ffffff' }}>
                       <th rowSpan={7} style={styles.thExcelExact}>NO.</th>
                       <th rowSpan={7} style={styles.thExcelExact}>KELOMPOK PENSIUN</th>
-                      <th rowSpan={4} style={{ display: 'none' }}></th>
+                      <th rowSpan={7} style={styles.thExcelExact}>JENIS PENSIUN</th>
                       <th style={styles.thExcelExact}>JUMLAH JIWA</th>
                       <th style={styles.thExcelExact}>JUMLAH BRUTO</th>
                       <th colSpan={6} style={styles.thExcelExact}>POTONGAN</th>
@@ -2328,22 +2393,19 @@ export default function App() {
                     <tr style={{ backgroundColor: '#ffffff' }}>
                       <th style={styles.thExcelExact}>A. PENERIMA</th>
                       <th style={styles.thExcelExact}>A. PENSIUN POKOK</th>
-                      <th colSpan={6} style={{ display: 'none' }}></th>
+                      <th rowSpan={6} style={styles.thExcelExact}>PPH21</th>
+                      <th rowSpan={6} style={styles.thExcelExact}>ASKES</th>
+                      <th colSpan={2} rowSpan={5} style={styles.thExcelExact}>HUTANG NEGARA</th>
+                      <th rowSpan={6} style={styles.thExcelExact}>LAIN-LAIN</th>
+                      <th rowSpan={6} style={styles.thExcelExact}>JUMLAH</th>
                     </tr>
                     <tr style={{ backgroundColor: '#ffffff' }}>
                       <th style={styles.thExcelExact}>B. ISTRI/ SUAMI</th>
                       <th style={styles.thExcelExact}>B. TUNJANGAN KELUARGA</th>
-                      <th colSpan={6} style={{ display: 'none' }}></th>
                     </tr>
                     <tr style={{ backgroundColor: '#ffffff' }}>
-                      <th rowSpan={4} style={styles.thExcelExact}>JENIS PENSIUN</th>
                       <th style={styles.thExcelExact}>C. ANAK</th>
                       <th style={styles.thExcelExact}>C. TUNJANGAN BERAS</th>
-                      <th rowSpan={4} style={styles.thExcelExact}>PPH21</th>
-                      <th rowSpan={4} style={styles.thExcelExact}>ASKES</th>
-                      <th colSpan={2} rowSpan={3} style={styles.thExcelExact}>HUTANG NEGARA</th>
-                      <th rowSpan={4} style={styles.thExcelExact}>LAIN-LAIN</th>
-                      <th rowSpan={4} style={styles.thExcelExact}>JUMLAH</th>
                     </tr>
                     <tr style={{ backgroundColor: '#ffffff' }}>
                       <th style={styles.thExcelExact}>D. (CACAT)</th>
@@ -2547,21 +2609,42 @@ export default function App() {
                   </div>
 
                   <div style={styles.calcBox}>
-                    <div style={{ fontWeight: 'bold', fontSize: 13, color: '#0f172a', marginBottom: 12 }}>
-                      ⚡ Hasil Perhitungan Ulang Nilai Manfaat Klaim (Real-time Calculator)
+                    <div style={{ fontWeight: 'bold', fontSize: 13, color: '#0f172a', marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>⚡ Hasil Perhitungan Ulang Nilai Manfaat Klaim (Real-time Calculator)</span>
+                      <span style={{ fontSize: '11px', background: '#dbeafe', color: '#1d4ed8', padding: '2px 8px', borderRadius: '4px' }}>
+                        Tarif Alokasi THT Aktif: {rateManfaatPeserta}% Peserta • {rateUangRisiko}% Dana Risiko
+                      </span>
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
                       <BenefitCard title="MANFAAT TA" oldVal={baseCalc.ta} newVal={newCalc.ta} />
                       <BenefitCard title="NILAI TUNAI TA (NTTA)" oldVal={baseCalc.ntta} newVal={newCalc.ntta} />
                       <BenefitCard title="NILAI TUNAI NTIP" oldVal={baseCalc.ntip} newVal={newCalc.ntip} />
+                      <div style={{ background: '#fff', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '12px', backgroundColor: '#f0f9ff' }}>
+                        <div style={{ fontSize: 11, fontWeight: 'bold', color: '#1e3a8a' }}>ALOKASI DANA RISIKO ({rateUangRisiko}%)</div>
+                        <div style={{ margin: '6px 0', fontSize: 12 }}>
+                          <div style={{ color: '#64748b' }}>Dari Manfaat Kotor: {formatRupiah(newCalc.total)}</div>
+                          <div style={{ color: '#d97706', fontWeight: 'bold', fontSize: '13px', marginTop: '2px' }}>{formatRupiah(newCalc.uangRisiko)}</div>
+                        </div>
+                        <div style={{ fontSize: 10, color: '#0369a1', fontStyle: 'italic' }}>
+                          Dipotong untuk Dana Risiko THT
+                        </div>
+                      </div>
                     </div>
+
                     <div style={styles.totalBanner}>
                       <div>
-                        <div style={{ fontSize: 10, color: '#f59e0b', fontWeight: 'bold' }}>TOTAL MANFAAT HASIL KOREKSI (POST CONDITION)</div>
-                        <div style={{ fontSize: 11, color: '#cbd5e1' }}>Telah memperhitungkan MKG Awal & Skorsing sesuai pengajuan.</div>
+                        <div style={{ fontSize: 10, color: '#f59e0b', fontWeight: 'bold' }}>TOTAL MANFAAT CAIR KE PESERTA (POST CONDITION — {rateManfaatPeserta}%)</div>
+                        <div style={{ fontSize: 11, color: '#cbd5e1' }}>
+                          Manfaat Kotor: {formatRupiah(newCalc.total)} • Potongan Dana Risiko ({rateUangRisiko}%): {formatRupiah(newCalc.uangRisiko)}
+                        </div>
                       </div>
-                      <div style={{ fontSize: 20, fontWeight: 'bold', color: '#4ade80' }}>
-                        {formatRupiah(newCalc.total)}
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: 20, fontWeight: 'bold', color: '#4ade80' }}>
+                          {formatRupiah(newCalc.hakPeserta)}
+                        </div>
+                        <div style={{ fontSize: 10, color: '#fbbf24', fontWeight: 'bold', marginTop: '2px' }}>
+                          ({rateManfaatPeserta}% Bersih Diterima Peserta)
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -3030,164 +3113,115 @@ export default function App() {
 }
 
 // HELPER COMPONENT FOR REKAPITULASI III SHEET 2 ("Ouput yang diharapkan") STRUCTURE
-function Rekapitulasi3ExpectedGroupBlock({ no, kelompokName, d1, d2, d3, d4, d5, d6, d7, d8, d9, isGrandTotal = false }) {
+function Rekapitulasi3ExpectedGroupBlock({ 
+  no, 
+  kelompokName, 
+  dataSections,
+  isGrandTotal = false 
+}) {
   const bgHeaderStyle = isGrandTotal ? { backgroundColor: '#e0f2fe', fontWeight: '800' } : { backgroundColor: '#ffffff', fontWeight: 'bold' };
   
+  // Default fallback data if dataSections is omitted
+  const sections = dataSections || {
+    a: {
+      jiwa: { penerima: "1.250", istriSuami: "215", anak: "110", cacat: "10", lain: "0", total: "1.585" },
+      bruto: { pokok: "8.200.000.000", keluarga: "820.000.000", beras: "350.000.000", cacat: "41.850.610", lain: "20.000.000", total: "9.431.850.610" },
+      potongan: { pph21: "462.163.239", askes: "59.671.967", tgr: "0", nonTgr: "30.548.074", lain: "0", total: "552.383.280" },
+      netto: "8.879.467.330"
+    },
+    b: {
+      jiwa: { penerima: "450", istriSuami: "0", anak: "35", cacat: "2", lain: "0", total: "487" },
+      bruto: { pokok: "2.100.000.000", keluarga: "105.000.000", beras: "85.000.000", cacat: "10.000.000", lain: "0", total: "2.300.000.000" },
+      potongan: { pph21: "95.000.000", askes: "14.500.000", tgr: "0", nonTgr: "5.200.000", lain: "0", total: "114.700.000" },
+      netto: "2.185.300.000"
+    },
+    c: {
+      jiwa: { penerima: "75", istriSuami: "0", anak: "0", cacat: "0", lain: "0", total: "75" },
+      bruto: { pokok: "320.000.000", keluarga: "0", beras: "15.000.000", cacat: "0", lain: "0", total: "335.000.000" },
+      potongan: { pph21: "8.500.000", askes: "2.100.000", tgr: "0", nonTgr: "0", lain: "0", total: "10.600.000" },
+      netto: "324.400.000"
+    },
+    d: {
+      jiwa: { penerima: "20", istriSuami: "0", anak: "0", cacat: "0", lain: "0", total: "20" },
+      bruto: { pokok: "85.000.000", keluarga: "0", beras: "4.500.000", cacat: "0", lain: "0", total: "89.500.000" },
+      potongan: { pph21: "2.100.000", askes: "600.000", tgr: "0", nonTgr: "0", lain: "0", total: "2.700.000" },
+      netto: "86.800.000"
+    }
+  };
+
+  const sectionKeys = [
+    { key: 'a', title: 'a. Pensiun Sendiri' },
+    { key: 'b', title: 'b. Pensiun Warakawuri/Janda/Duda' },
+    { key: 'c', title: 'c. Tunjangan Yatim Piatu' },
+    { key: 'd', title: 'd. Tunjangan Orang Tua' }
+  ];
+
   return (
     <React.Fragment>
-      {/* SECTION a: Pensiun Sendiri */}
-      <tr style={bgHeaderStyle}>
-        <td rowSpan={24} style={{ ...styles.tdExcelExact, verticalAlign: 'top', fontWeight: 'bold', fontSize: '11px', backgroundColor: isGrandTotal ? '#e0f2fe' : '#ffffff' }}>{no}</td>
-        <td rowSpan={24} style={{ ...styles.tdExcelExact, verticalAlign: 'top', fontWeight: 'bold', textAlign: 'left', fontSize: '11px', backgroundColor: isGrandTotal ? '#e0f2fe' : '#ffffff' }}>{kelompokName}</td>
-        <td rowSpan={6} style={{ ...styles.tdExcelExact, verticalAlign: 'top', fontWeight: 'bold', textAlign: 'left', backgroundColor: isGrandTotal ? '#f0f9ff' : '#ffffff' }}>a. Pensiun Sendiri</td>
-        <td style={{ ...styles.tdExcelExact, textAlign: 'left' }}>A. PENERIMA</td>
-        <td style={{ ...styles.tdExcelExact, textAlign: 'left' }}>A. PENSIUN POKOK</td>
-        <td rowSpan={4} style={{ ...styles.tdExcelExact, textAlign: 'right' }}>{d3}</td>
-        <td rowSpan={4} style={{ ...styles.tdExcelExact, textAlign: 'right' }}>{d4}</td>
-        <td rowSpan={3} style={{ ...styles.tdExcelExact, textAlign: 'right' }}>{d5}</td>
-        <td rowSpan={3} style={{ ...styles.tdExcelExact, textAlign: 'right' }}>{d6}</td>
-        <td rowSpan={4} style={{ ...styles.tdExcelExact, textAlign: 'right' }}>{d7}</td>
-        <td rowSpan={4} style={{ ...styles.tdExcelExact, textAlign: 'right' }}>{d8}</td>
-        <td rowSpan={4} style={{ ...styles.tdExcelExact, textAlign: 'right', fontWeight: 'bold' }}>{d9}</td>
-      </tr>
-      <tr>
-        <td style={{ ...styles.tdExcelExact, textAlign: 'left' }}>B. ISTRI/ SUAMI</td>
-        <td style={{ ...styles.tdExcelExact, textAlign: 'left' }}>B. TUNJANGAN KELUARGA</td>
-      </tr>
-      <tr>
-        <td style={{ ...styles.tdExcelExact, textAlign: 'left' }}>C. ANAK</td>
-        <td style={{ ...styles.tdExcelExact, textAlign: 'left' }}>C. TUNJANGAN BERAS</td>
-      </tr>
-      <tr>
-        <td style={{ ...styles.tdExcelExact, textAlign: 'left' }}>D. (CACAT)</td>
-        <td style={{ ...styles.tdExcelExact, textAlign: 'left' }}>D. CACAT LAIN-LAIN</td>
-      </tr>
-      <tr>
-        <td style={styles.tdExcelExact}></td>
-        <td style={{ ...styles.tdExcelExact, textAlign: 'left' }}>E. LAIN-LAIN</td>
-        <td style={styles.tdExcelExact}></td><td style={styles.tdExcelExact}></td><td style={styles.tdExcelExact}></td><td style={styles.tdExcelExact}></td><td style={styles.tdExcelExact}></td><td style={styles.tdExcelExact}></td><td style={styles.tdExcelExact}></td>
-      </tr>
-      <tr style={{ backgroundColor: '#f8fafc', fontWeight: 'bold' }}>
-        <td style={{ ...styles.tdExcelExact, textAlign: 'left' }}>TOTAL</td>
-        <td style={{ ...styles.tdExcelExact, textAlign: 'left' }}>TOTAL</td>
-        <td style={{ ...styles.tdExcelExact, textAlign: 'right' }}>{d1}</td>
-        <td style={{ ...styles.tdExcelExact, textAlign: 'right' }}>{d2}</td>
-        <td style={styles.tdExcelExact}></td><td style={styles.tdExcelExact}></td><td style={styles.tdExcelExact}></td><td style={styles.tdExcelExact}></td><td style={styles.tdExcelExact}></td>
-      </tr>
+      {sectionKeys.map((sec, secIdx) => {
+        const secData = sections[sec.key];
+        const isFirstSec = secIdx === 0;
 
-      {/* SECTION b: Pensiun Warakawuri/Janda/Duda */}
-      <tr>
-        <td rowSpan={6} style={{ ...styles.tdExcelExact, verticalAlign: 'top', fontWeight: 'bold', textAlign: 'left' }}>b. Pensiun Warakawuri/Janda/Duda</td>
-        <td style={{ ...styles.tdExcelExact, textAlign: 'left' }}>A. PENERIMA</td>
-        <td style={{ ...styles.tdExcelExact, textAlign: 'left' }}>A. PENSIUN POKOK</td>
-        <td rowSpan={4} style={{ ...styles.tdExcelExact, textAlign: 'right' }}>0</td>
-        <td rowSpan={4} style={{ ...styles.tdExcelExact, textAlign: 'right' }}>0</td>
-        <td rowSpan={3} style={{ ...styles.tdExcelExact, textAlign: 'right' }}>0</td>
-        <td rowSpan={3} style={{ ...styles.tdExcelExact, textAlign: 'right' }}>0</td>
-        <td rowSpan={4} style={{ ...styles.tdExcelExact, textAlign: 'right' }}>0</td>
-        <td rowSpan={4} style={{ ...styles.tdExcelExact, textAlign: 'right' }}>0</td>
-        <td rowSpan={4} style={{ ...styles.tdExcelExact, textAlign: 'right', fontWeight: 'bold' }}>0</td>
-      </tr>
-      <tr>
-        <td style={{ ...styles.tdExcelExact, textAlign: 'left' }}>B. ISTRI/ SUAMI</td>
-        <td style={{ ...styles.tdExcelExact, textAlign: 'left' }}>B. TUNJANGAN KELUARGA</td>
-      </tr>
-      <tr>
-        <td style={{ ...styles.tdExcelExact, textAlign: 'left' }}>C. ANAK</td>
-        <td style={{ ...styles.tdExcelExact, textAlign: 'left' }}>C. TUNJANGAN BERAS</td>
-      </tr>
-      <tr>
-        <td style={{ ...styles.tdExcelExact, textAlign: 'left' }}>D. (CACAT)</td>
-        <td style={{ ...styles.tdExcelExact, textAlign: 'left' }}>D. CACAT LAIN-LAIN</td>
-      </tr>
-      <tr>
-        <td style={styles.tdExcelExact}></td>
-        <td style={{ ...styles.tdExcelExact, textAlign: 'left' }}>E. LAIN-LAIN</td>
-        <td style={styles.tdExcelExact}></td><td style={styles.tdExcelExact}></td><td style={styles.tdExcelExact}></td><td style={styles.tdExcelExact}></td><td style={styles.tdExcelExact}></td><td style={styles.tdExcelExact}></td><td style={styles.tdExcelExact}></td>
-      </tr>
-      <tr style={{ backgroundColor: '#f8fafc', fontWeight: 'bold' }}>
-        <td style={{ ...styles.tdExcelExact, textAlign: 'left' }}>TOTAL</td>
-        <td style={{ ...styles.tdExcelExact, textAlign: 'left' }}>TOTAL</td>
-        <td style={{ ...styles.tdExcelExact, textAlign: 'right' }}>0</td>
-        <td style={{ ...styles.tdExcelExact, textAlign: 'right' }}>0</td>
-        <td style={styles.tdExcelExact}></td><td style={styles.tdExcelExact}></td><td style={styles.tdExcelExact}></td><td style={styles.tdExcelExact}></td><td style={styles.tdExcelExact}></td>
-      </tr>
+        return (
+          <React.Fragment key={sec.key}>
+            {/* ROW 1: A. PENERIMA / A. PENSIUN POKOK + POTONGAN & NETTO (ROWSPAN 6) */}
+            <tr style={bgHeaderStyle}>
+              {isFirstSec && (
+                <td rowSpan={24} style={{ ...styles.tdExcelExact, verticalAlign: 'top', fontWeight: 'bold', fontSize: '11px', backgroundColor: isGrandTotal ? '#e0f2fe' : '#ffffff' }}>
+                  {no}
+                </td>
+              )}
+              {isFirstSec && (
+                <td rowSpan={24} style={{ ...styles.tdExcelExact, verticalAlign: 'top', fontWeight: 'bold', textAlign: 'left', fontSize: '11px', backgroundColor: isGrandTotal ? '#e0f2fe' : '#ffffff' }}>
+                  {kelompokName}
+                </td>
+              )}
+              <td rowSpan={6} style={{ ...styles.tdExcelExact, verticalAlign: 'top', fontWeight: 'bold', textAlign: 'left', backgroundColor: isGrandTotal ? '#f0f9ff' : '#ffffff' }}>
+                {sec.title}
+              </td>
+              <td style={{ ...styles.tdExcelExact, textAlign: 'right' }}>{secData.jiwa.penerima}</td>
+              <td style={{ ...styles.tdExcelExact, textAlign: 'right' }}>{secData.bruto.pokok}</td>
+              <td rowSpan={6} style={{ ...styles.tdExcelExact, textAlign: 'right', verticalAlign: 'top' }}>{secData.potongan.pph21}</td>
+              <td rowSpan={6} style={{ ...styles.tdExcelExact, textAlign: 'right', verticalAlign: 'top' }}>{secData.potongan.askes}</td>
+              <td rowSpan={6} style={{ ...styles.tdExcelExact, textAlign: 'right', verticalAlign: 'top' }}>{secData.potongan.tgr}</td>
+              <td rowSpan={6} style={{ ...styles.tdExcelExact, textAlign: 'right', verticalAlign: 'top' }}>{secData.potongan.nonTgr}</td>
+              <td rowSpan={6} style={{ ...styles.tdExcelExact, textAlign: 'right', verticalAlign: 'top' }}>{secData.potongan.lain}</td>
+              <td rowSpan={6} style={{ ...styles.tdExcelExact, textAlign: 'right', verticalAlign: 'top', fontWeight: 'bold' }}>{secData.potongan.total}</td>
+              <td rowSpan={6} style={{ ...styles.tdExcelExact, textAlign: 'right', verticalAlign: 'top', fontWeight: 'bold' }}>{secData.netto}</td>
+            </tr>
 
-      {/* SECTION c: Tunjangan Yatim Piatu */}
-      <tr>
-        <td rowSpan={6} style={{ ...styles.tdExcelExact, verticalAlign: 'top', fontWeight: 'bold', textAlign: 'left' }}>c. Tunjangan Yatim Piatu</td>
-        <td style={{ ...styles.tdExcelExact, textAlign: 'left' }}>A. PENERIMA</td>
-        <td style={{ ...styles.tdExcelExact, textAlign: 'left' }}>A. PENSIUN POKOK</td>
-        <td rowSpan={4} style={{ ...styles.tdExcelExact, textAlign: 'right' }}>0</td>
-        <td rowSpan={4} style={{ ...styles.tdExcelExact, textAlign: 'right' }}>0</td>
-        <td rowSpan={3} style={{ ...styles.tdExcelExact, textAlign: 'right' }}>0</td>
-        <td rowSpan={3} style={{ ...styles.tdExcelExact, textAlign: 'right' }}>0</td>
-        <td rowSpan={4} style={{ ...styles.tdExcelExact, textAlign: 'right' }}>0</td>
-        <td rowSpan={4} style={{ ...styles.tdExcelExact, textAlign: 'right' }}>0</td>
-        <td rowSpan={4} style={{ ...styles.tdExcelExact, textAlign: 'right', fontWeight: 'bold' }}>0</td>
-      </tr>
-      <tr>
-        <td style={{ ...styles.tdExcelExact, textAlign: 'left' }}>B. ISTRI/ SUAMI</td>
-        <td style={{ ...styles.tdExcelExact, textAlign: 'left' }}>B. TUNJANGAN KELUARGA</td>
-      </tr>
-      <tr>
-        <td style={{ ...styles.tdExcelExact, textAlign: 'left' }}>C. ANAK</td>
-        <td style={{ ...styles.tdExcelExact, textAlign: 'left' }}>C. TUNJANGAN BERAS</td>
-      </tr>
-      <tr>
-        <td style={{ ...styles.tdExcelExact, textAlign: 'left' }}>D. (CACAT)</td>
-        <td style={{ ...styles.tdExcelExact, textAlign: 'left' }}>D. CACAT LAIN-LAIN</td>
-      </tr>
-      <tr>
-        <td style={styles.tdExcelExact}></td>
-        <td style={{ ...styles.tdExcelExact, textAlign: 'left' }}>E. LAIN-LAIN</td>
-        <td style={styles.tdExcelExact}></td><td style={styles.tdExcelExact}></td><td style={styles.tdExcelExact}></td><td style={styles.tdExcelExact}></td><td style={styles.tdExcelExact}></td><td style={styles.tdExcelExact}></td><td style={styles.tdExcelExact}></td>
-      </tr>
-      <tr style={{ backgroundColor: '#f8fafc', fontWeight: 'bold' }}>
-        <td style={{ ...styles.tdExcelExact, textAlign: 'left' }}>TOTAL</td>
-        <td style={{ ...styles.tdExcelExact, textAlign: 'left' }}>TOTAL</td>
-        <td style={{ ...styles.tdExcelExact, textAlign: 'right' }}>0</td>
-        <td style={{ ...styles.tdExcelExact, textAlign: 'right' }}>0</td>
-        <td style={styles.tdExcelExact}></td><td style={styles.tdExcelExact}></td><td style={styles.tdExcelExact}></td><td style={styles.tdExcelExact}></td><td style={styles.tdExcelExact}></td>
-      </tr>
+            {/* ROW 2: B. ISTRI/ SUAMI / B. TUNJANGAN KELUARGA */}
+            <tr style={bgHeaderStyle}>
+              <td style={{ ...styles.tdExcelExact, textAlign: 'right' }}>{secData.jiwa.istriSuami}</td>
+              <td style={{ ...styles.tdExcelExact, textAlign: 'right' }}>{secData.bruto.keluarga}</td>
+            </tr>
 
-      {/* SECTION d: Tunjangan Orang Tua */}
-      <tr>
-        <td rowSpan={6} style={{ ...styles.tdExcelExact, verticalAlign: 'top', fontWeight: 'bold', textAlign: 'left' }}>d. Tunjangan Orang Tua</td>
-        <td style={{ ...styles.tdExcelExact, textAlign: 'left' }}>A. PENERIMA</td>
-        <td style={{ ...styles.tdExcelExact, textAlign: 'left' }}>A. PENSIUN POKOK</td>
-        <td rowSpan={4} style={{ ...styles.tdExcelExact, textAlign: 'right' }}>0</td>
-        <td rowSpan={4} style={{ ...styles.tdExcelExact, textAlign: 'right' }}>0</td>
-        <td rowSpan={3} style={{ ...styles.tdExcelExact, textAlign: 'right' }}>0</td>
-        <td rowSpan={3} style={{ ...styles.tdExcelExact, textAlign: 'right' }}>0</td>
-        <td rowSpan={4} style={{ ...styles.tdExcelExact, textAlign: 'right' }}>0</td>
-        <td rowSpan={4} style={{ ...styles.tdExcelExact, textAlign: 'right' }}>0</td>
-        <td rowSpan={4} style={{ ...styles.tdExcelExact, textAlign: 'right', fontWeight: 'bold' }}>0</td>
-      </tr>
-      <tr>
-        <td style={{ ...styles.tdExcelExact, textAlign: 'left' }}>B. ISTRI/ SUAMI</td>
-        <td style={{ ...styles.tdExcelExact, textAlign: 'left' }}>B. TUNJANGAN KELUARGA</td>
-      </tr>
-      <tr>
-        <td style={{ ...styles.tdExcelExact, textAlign: 'left' }}>C. ANAK</td>
-        <td style={{ ...styles.tdExcelExact, textAlign: 'left' }}>C. TUNJANGAN BERAS</td>
-      </tr>
-      <tr>
-        <td style={{ ...styles.tdExcelExact, textAlign: 'left' }}>D. (CACAT)</td>
-        <td style={{ ...styles.tdExcelExact, textAlign: 'left' }}>D. CACAT LAIN-LAIN</td>
-      </tr>
-      <tr>
-        <td style={styles.tdExcelExact}></td>
-        <td style={{ ...styles.tdExcelExact, textAlign: 'left' }}>E. LAIN-LAIN</td>
-        <td style={styles.tdExcelExact}></td><td style={styles.tdExcelExact}></td><td style={styles.tdExcelExact}></td><td style={styles.tdExcelExact}></td><td style={styles.tdExcelExact}></td><td style={styles.tdExcelExact}></td><td style={styles.tdExcelExact}></td>
-      </tr>
-      <tr style={{ backgroundColor: '#f8fafc', fontWeight: 'bold' }}>
-        <td style={{ ...styles.tdExcelExact, textAlign: 'left' }}>TOTAL</td>
-        <td style={{ ...styles.tdExcelExact, textAlign: 'left' }}>TOTAL</td>
-        <td style={{ ...styles.tdExcelExact, textAlign: 'right' }}>0</td>
-        <td style={{ ...styles.tdExcelExact, textAlign: 'right' }}>0</td>
-        <td style={styles.tdExcelExact}></td><td style={styles.tdExcelExact}></td><td style={styles.tdExcelExact}></td><td style={styles.tdExcelExact}></td><td style={styles.tdExcelExact}></td>
-      </tr>
+            {/* ROW 3: C. ANAK / C. TUNJANGAN BERAS */}
+            <tr style={bgHeaderStyle}>
+              <td style={{ ...styles.tdExcelExact, textAlign: 'right' }}>{secData.jiwa.anak}</td>
+              <td style={{ ...styles.tdExcelExact, textAlign: 'right' }}>{secData.bruto.beras}</td>
+            </tr>
+
+            {/* ROW 4: D. (CACAT) / D. CACAT LAIN-LAIN */}
+            <tr style={bgHeaderStyle}>
+              <td style={{ ...styles.tdExcelExact, textAlign: 'right' }}>{secData.jiwa.cacat}</td>
+              <td style={{ ...styles.tdExcelExact, textAlign: 'right' }}>{secData.bruto.cacat}</td>
+            </tr>
+
+            {/* ROW 5: E. LAIN-LAIN */}
+            <tr style={bgHeaderStyle}>
+              <td style={{ ...styles.tdExcelExact, textAlign: 'right' }}>{secData.jiwa.lain}</td>
+              <td style={{ ...styles.tdExcelExact, textAlign: 'right' }}>{secData.bruto.lain}</td>
+            </tr>
+
+            {/* ROW 6: TOTAL SECTION */}
+            <tr style={{ backgroundColor: isGrandTotal ? '#bae6fd' : '#f8fafc', fontWeight: 'bold' }}>
+              <td style={{ ...styles.tdExcelExact, textAlign: 'right', fontWeight: 'bold' }}>{secData.jiwa.total}</td>
+              <td style={{ ...styles.tdExcelExact, textAlign: 'right', fontWeight: 'bold' }}>{secData.bruto.total}</td>
+            </tr>
+          </React.Fragment>
+        );
+      })}
     </React.Fragment>
   );
 }
@@ -3251,7 +3285,6 @@ const styles = {
   sidebarParentNav: { padding: "10px 12px", borderRadius: "8px", fontWeight: "600", fontSize: "13px", color: "#334155", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", backgroundColor: "#f8fafc", border: "1px solid #f1f5f9" },
   sidebarSubItem: { padding: "8px 12px", borderRadius: "6px", fontSize: "12px", fontWeight: "500", color: "#64748b", cursor: "pointer", transition: "background 0.15s" },
   sidebarSubItemActive: { padding: "8px 12px", borderRadius: "6px", fontSize: "12px", fontWeight: "bold", color: "#2563eb", backgroundColor: "#e0f2fe", cursor: "pointer" },
-  sidebarActivePill: { background: "#dbeafe", color: "#1d4ed8", padding: "2px 6px", borderRadius: "4px", fontSize: "10px" },
   sidebarFooter: { background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "12px" },
   mainContent: { flex: 1, marginLeft: "240px", padding: "24px", boxSizing: "border-box" },
   pageTopBar: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" },

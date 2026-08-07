@@ -1,5 +1,5 @@
 {
-  "summary": "Updated src/App.jsx to allow Divisi Aktuaria to view full details of MKG Awal and Skorsing in Read-Only mode while preventing any edits.",
-  "updatedAt": "2026-08-07T06:17:30.327261800Z",
+  "summary": "Combined Alokasi Manfaat Peserta and Alokasi Dana Risiko into a single unified actuary parameter in src/App.jsx.",
+  "updatedAt": "2026-08-07T07:02:00.329423100Z",
   "userFacing": true
 }
