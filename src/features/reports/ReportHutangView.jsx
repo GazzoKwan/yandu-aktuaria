@@ -19,7 +19,7 @@ export default function ReportHutangView({
     <div>
       <div style={styles.pageTopBar}>
         <div>
-          <div style={styles.breadcrumb}>Beranda &rsaquo; Pelayanan &rsaquo; Report Pelayanan &rsaquo; Report Hutang Klaim (Format B-2)</div>
+          <div style={styles.breadcrumb}>Beranda &rsaquo; Pelayanan &rsaquo; Report Pelayanan &rsaquo; Report Hutang Klaim</div>
           <h1 style={styles.pageTitle}>Report Hutang Klaim</h1>
         </div>
         <div style={styles.dateBox}>Kamis, 06 Agustus 2026</div>
@@ -73,14 +73,20 @@ export default function ReportHutangView({
                     value={hutangType}
                     onChange={(e) => setHutangType(e.target.value)}
                   >
-                    <option value="Rekap">Rekapitulasi</option>
-                    <option value="Detail">Rincian Detail</option>
+                    <option value="Rekap">Rekap</option>
+                    <option value="Nominatif PP67 Dibawah 1 Juli 2015">Nominatif PP67 Dibawah 1 Juli 2015</option>
+                    <option value="Nominatif PP67 Diatas 1 Juli 2015 (PP 102 Peralihan)">Nominatif PP67 Diatas 1 Juli 2015 (PP 102 Peralihan)</option>
+                    <option value="Nominatif PP THT">Nominatif PP THT</option>
+                    <option value="Nominatif PP JKK">Nominatif PP JKK</option>
+                    <option value="Nominatif PP JKM">Nominatif PP JKM</option>
+                    <option value="Nominatif PP JP">Nominatif PP JP</option>
+                    <option value="Nominatif Batal BUM">Nominatif Batal BUM</option>
                   </select>
                 </div>
 
                 <div style={styles.modernFieldGroup}>
                   <label style={styles.modernLabel}>
-                    <span>📋 Kategori Utang</span>
+                    <span>📋 Kategori</span>
                   </label>
                   <select 
                     style={styles.modernSelect}
@@ -88,8 +94,9 @@ export default function ReportHutangView({
                     onChange={(e) => setHutangKategori(e.target.value)}
                   >
                     <option value="Utang Klaim Tahun Lalu">Utang Klaim Tahun Lalu</option>
-                    <option value="Utang Klaim Tahun Berjalan">Utang Klaim Tahun Berjalan</option>
-                    <option value="Semua Utang Klaim">Semua Utang Klaim</option>
+                    <option value="Klaim yang disetujui Tahun Berjalan Belum di Bayar">Klaim yang disetujui Tahun Berjalan Belum di Bayar</option>
+                    <option value="Utang Klaim Tahun Lalu yang Sudah di Bayar">Utang Klaim Tahun Lalu yang Sudah di Bayar</option>
+                    <option value="Utang Klaim Tahun Lalu Berjalan">Utang Klaim Tahun Lalu Berjalan</option>
                   </select>
                 </div>
 

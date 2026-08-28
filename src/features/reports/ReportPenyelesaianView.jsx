@@ -19,7 +19,7 @@ export default function ReportPenyelesaianView({
     <div>
       <div style={styles.pageTopBar}>
         <div>
-          <div style={styles.breadcrumb}>Beranda &rsaquo; Pelayanan &rsaquo; Report Pelayanan &rsaquo; Report Penyelesaian Klaim (Format E-1)</div>
+          <div style={styles.breadcrumb}>Beranda &rsaquo; Pelayanan &rsaquo; Report Pelayanan &rsaquo; Report Penyelesaian Klaim</div>
           <h1 style={styles.pageTitle}>Report Penyelesaian Klaim</h1>
         </div>
         <div style={styles.dateBox}>Kamis, 06 Agustus 2026</div>
@@ -73,14 +73,20 @@ export default function ReportPenyelesaianView({
                     value={penyelesaianType}
                     onChange={(e) => setPenyelesaianType(e.target.value)}
                   >
-                    <option value="Rekap">Rekapitulasi</option>
-                    <option value="Detail">Rincian Detail</option>
+                    <option value="Rekap">Rekap</option>
+                    <option value="Nominatif PP67 Dibawah 1 Juli 2015">Nominatif PP67 Dibawah 1 Juli 2015</option>
+                    <option value="Nominatif PP67 Diatas 1 Juli 2015 (PP 102 Peralihan)">Nominatif PP67 Diatas 1 Juli 2015 (PP 102 Peralihan)</option>
+                    <option value="Nominatif PP THT">Nominatif PP THT</option>
+                    <option value="Nominatif PP JKK">Nominatif PP JKK</option>
+                    <option value="Nominatif PP JKM">Nominatif PP JKM</option>
+                    <option value="Nominatif PP JP">Nominatif PP JP</option>
+                    <option value="Nominatif Batal BUM">Nominatif Batal BUM</option>
                   </select>
                 </div>
 
                 <div style={{ ...styles.modernFieldGroup, gridColumn: 'span 2' }}>
                   <label style={styles.modernLabel}>
-                    <span>📋 Status Jenis Klaim</span>
+                    <span>📋 Jenis Klaim</span>
                   </label>
                   <select 
                     style={styles.modernSelect}

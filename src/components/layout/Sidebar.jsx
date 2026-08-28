@@ -35,17 +35,17 @@ export default function Sidebar({
           {reportExpanded && (
             <div style={{ marginLeft: 12, marginTop: 4, display: 'flex', flexDirection: 'column', gap: 4 }}>
               <div 
-                style={activePage === 'reportHutang' ? styles.sidebarSubItemActive : styles.sidebarSubItem}
-                onClick={() => setActivePage('reportHutang')}
-              >
-                📄 Report Hutang Klaim (B-2)
-              </div>
-
-              <div 
                 style={activePage === 'reportPenyelesaian' ? styles.sidebarSubItemActive : styles.sidebarSubItem}
                 onClick={() => setActivePage('reportPenyelesaian')}
               >
-                📄 Report Penyelesaian Klaim (E-1)
+                📄 Report Penyelesaian Klaim
+              </div>
+
+              <div 
+                style={activePage === 'reportHutang' ? styles.sidebarSubItemActive : styles.sidebarSubItem}
+                onClick={() => setActivePage('reportHutang')}
+              >
+                📄 Report Hutang Klaim
               </div>
             </div>
           )}
