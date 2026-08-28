@@ -1,5 +1,3 @@
-// Data store and benefit calculation engine for ASABRI Koreksi Manfaat
-
 export const initialClaimData = [
   {
     id: 1,
@@ -43,7 +41,9 @@ export const initialClaimData = [
     masaKerjaBulan: 336,
     jenisKlaim: "TA",
     skorsingBulan: 0,
+    skorsingList: [],
     mkgAwalTahun: 0,
+    mkgAwalBulan: 0,
     status: "BELUM"
   },
   {
@@ -88,7 +88,32 @@ export const initialClaimData = [
     masaKerjaBulan: 264,
     jenisKlaim: "NTTA",
     skorsingBulan: 6,
+    skorsingList: [
+      {
+        id: 1,
+        tglMulai: "2024-01-01",
+        tglAkhir: "2024-06-30",
+        jumlahBulan: 6,
+        persenSkorsing: 50,
+        noSkep: "SKEP/SKOR/102/2024",
+        fileName: "SKEP_Skorsing_AhmadSubagyo_2024.pdf",
+        tglUpload: "15-01-2024",
+        landasan: "SK Direksi No. 102/2024"
+      },
+      {
+        id: 2,
+        tglMulai: "2027-01-01",
+        tglAkhir: "2027-06-30",
+        jumlahBulan: 6,
+        persenSkorsing: 25,
+        noSkep: "SKEP/SKOR/108/2027",
+        fileName: "SKEP_Skorsing_Mendatang_2027.pdf",
+        tglUpload: "01-08-2026",
+        landasan: "Evaluasi Triwulan 2026"
+      }
+    ],
     mkgAwalTahun: 2,
+    mkgAwalBulan: 6,
     status: "TERKOREKSI"
   },
   {
@@ -133,27 +158,9 @@ export const initialClaimData = [
     masaKerjaBulan: 312,
     jenisKlaim: "NTIP",
     skorsingBulan: 0,
+    skorsingList: [],
     mkgAwalTahun: 0,
+    mkgAwalBulan: 0,
     status: "BELUM"
   }
 ];
-
-export function formatRupiah(number) {
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    maximumFractionDigits: 0
-  }).format(number || 0);
-}
-
-export function calculateBenefits(gajiPokok, masaKerjaBulan, skorsingBulan, mkgAwalTahun) {
-  const effMasaKerjaYears = Math.max(0, (masaKerjaBulan - (skorsingBulan || 0)) / 12) + (mkgAwalTahun || 0);
-
-  const ta = gajiPokok * 12 * (effMasaKerjaYears / 10) * 1.15;
-  const ntta = gajiPokok * 0.95 * effMasaKerjaYears * 1.05;
-  const ntip = gajiPokok * 0.75 * effMasaKerjaYears * 1.02;
-
-  const total = ta + ntta + ntip;
-
-  return { ta, ntta, ntip, total, effMasaKerjaYears };
-}
