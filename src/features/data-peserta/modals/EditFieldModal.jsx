@@ -14,7 +14,7 @@ export default function EditFieldModal({
     <div style={styles.modalBackdrop}>
       <div style={{ ...styles.subModalContainer, maxWidth: '520px' }}>
         <div style={styles.subModalHeader}>
-          <h3 style={{ fontSize: 14, color: '#fff', margin: 0 }}>Edit — {editConfig.fieldLabel}</h3>
+          <h3 style={{ fontSize: 14, color: '#0f172a', margin: 0 }}>Edit — {editConfig.fieldLabel}</h3>
           <button style={styles.closeBtn} onClick={onClose}>✕</button>
         </div>
         <form onSubmit={onSubmit}>

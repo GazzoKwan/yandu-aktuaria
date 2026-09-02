@@ -27,7 +27,7 @@ export default function Header({ userRole, handleRoleChange, searchVal, setSearc
   return (
     <header style={styles.header}>
       <div style={styles.headerLeft}>
-        <div style={styles.brandBox}>A</div>
+        <img src="/logo-asabri-white.png" alt="Logo ASABRI" style={styles.brandBox} />
         <div>
           <div style={styles.brandTitle}>YANDU NEXTGEN ASABRI</div>
           <div style={styles.brandSub}>
@@ -48,7 +48,7 @@ export default function Header({ userRole, handleRoleChange, searchVal, setSearc
 
       <div style={styles.headerRight}>
         <div style={styles.roleBadge}>
-          <span style={{ fontSize: '11px', color: '#cbd5e1' }}>PILIH AKSES:</span>
+          <span style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.5px', color: '#bfd6f5' }}>PILIH AKSES:</span>
           <select 
             style={styles.roleSelectDropdown}
             value={userRole}

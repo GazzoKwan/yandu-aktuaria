@@ -16,7 +16,7 @@ export default function ReportPenyelesaianPreviewModal({
       <div style={{ ...styles.modalContainer, maxWidth: '1360px' }}>
         <div style={styles.modalHeader}>
           <div>
-            <div style={{ fontSize: 10, color: '#f59e0b', fontWeight: 'bold' }}>PREVIEW CETAK REPORT PELAYANAN — E-1. LAPORAN PENYELESAIAN KLAIM</div>
+            <div style={{ fontSize: 10, color: '#64748b', fontWeight: '800', letterSpacing: '0.5px' }}>PREVIEW CETAK REPORT PELAYANAN — E-1. LAPORAN PENYELESAIAN KLAIM</div>
             <h2 style={{ fontSize: 16, marginTop: 2 }}>
               E-1. LAPORAN PENYELESAIAN KLAIM — {penyelesaianPeriode === 'Tahunan' ? `PERIODE TAHUNAN ${penyelesaianTahun}` : `PERIODE TRIWULAN : ${penyelesaianPeriode === '1' ? 'I' : penyelesaianPeriode === '2' ? 'II' : penyelesaianPeriode === '3' ? 'III' : 'IV'} TAHUN ${penyelesaianTahun}`}
             </h2>

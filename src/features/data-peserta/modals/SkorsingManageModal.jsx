@@ -17,10 +17,10 @@ export default function SkorsingManageModal({
       <div style={{ ...styles.modalContainer, maxWidth: '980px' }}>
         <div style={styles.modalHeader}>
           <div>
-            <div style={{ fontSize: 10, color: '#f59e0b', fontWeight: 'bold' }}>
+            <div style={{ fontSize: 10, color: '#64748b', fontWeight: '800', letterSpacing: '0.5px' }}>
               {userRole === 'CSO' ? 'HAK AKSES CSO KANCAB — PENGELOLAAN MULTI-PERIODE SKORSING & DOKUMEN SKEP' : 'HAK AKSES DIVISI AKTUARIA — DETAIL MULTI-PERIODE SKORSING (READ-ONLY)'}
             </div>
-            <h3 style={{ fontSize: 16, color: '#fff', marginTop: 2 }}>
+            <h3 style={{ fontSize: 16, color: '#0f172a', marginTop: 2 }}>
               {userRole === 'CSO' ? '🎖️ Kelola Periode Skorsing Peserta' : '👁️ Detail Periode Skorsing Peserta'} — {selectedClaim.nama} ({selectedClaim.spNum})
             </h3>
           </div>

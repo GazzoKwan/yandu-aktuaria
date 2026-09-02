@@ -9,8 +9,8 @@ export default function EdosirPreviewModal({ selectedDocPreview, onClose }) {
       <div style={{ ...styles.modalContainer, maxWidth: '680px' }}>
         <div style={styles.modalHeader}>
           <div>
-            <div style={{ fontSize: 10, color: '#f59e0b', fontWeight: 'bold' }}>PREVIEW BERKAS DIGITAL E-DOSIR (RPT-02)</div>
-            <h3 style={{ fontSize: 15, color: '#fff', marginTop: 2 }}>{selectedDocPreview.jenisDoc}</h3>
+            <div style={{ fontSize: 10, color: '#64748b', fontWeight: '800', letterSpacing: '0.5px' }}>PREVIEW BERKAS DIGITAL E-DOSIR (RPT-02)</div>
+            <h3 style={{ fontSize: 15, color: '#0f172a', marginTop: 2 }}>{selectedDocPreview.jenisDoc}</h3>
           </div>
           <button style={styles.closeBtn} onClick={onClose}>✕</button>
         </div>

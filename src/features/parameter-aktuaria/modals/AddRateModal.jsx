@@ -24,8 +24,8 @@ export default function AddRateModal({
       <div style={{ ...styles.subModalContainer, maxWidth: '600px' }}>
         <div style={styles.subModalHeader}>
           <div>
-            <div style={{ fontSize: 10, color: '#f59e0b', fontWeight: 'bold' }}>UC-AKT-005: USULAN RATE PARAMETER (MAKER)</div>
-            <h3 style={{ fontSize: 14, color: '#fff', margin: '2px 0 0 0' }}>
+            <div style={{ fontSize: 10, color: '#64748b', fontWeight: '800', letterSpacing: '0.5px' }}>UC-AKT-005: USULAN RATE PARAMETER (MAKER)</div>
+            <h3 style={{ fontSize: 14, color: '#0f172a', margin: '2px 0 0 0' }}>
               ➕ Usulkan Rate Persenan Baru — {selectedParam.nama}
             </h3>
           </div>
