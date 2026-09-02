@@ -2,6 +2,28 @@ import React from 'react';
 import { styles } from '../../styles/themeStyles';
 
 export default function Header({ userRole, handleRoleChange, searchVal, setSearchVal }) {
+  const getRoleLabel = (role) => {
+    switch(role) {
+      case 'CSO': return 'CSO KANTOR CABANG';
+      case 'AKTUARIA_MAKER': return 'ANALIS AKTUARIA (MAKER)';
+      case 'AKTUARIA_CHECKER': return 'KABID AKTUARIA (CHECKER)';
+      case 'AKTUARIA_APPROVER': return 'KADIV AKTUARIA (FINAL APPROVER)';
+      default: return 'DIVISI AKTUARIA';
+    }
+  };
+
+  const getAvatarInfo = (role) => {
+    switch(role) {
+      case 'CSO': return { text: 'CS', bg: '#2563eb' };
+      case 'AKTUARIA_MAKER': return { text: 'AN', bg: '#0284c7' };
+      case 'AKTUARIA_CHECKER': return { text: 'KB', bg: '#7c3aed' };
+      case 'AKTUARIA_APPROVER': return { text: 'KD', bg: '#059669' };
+      default: return { text: 'DA', bg: '#059669' };
+    }
+  };
+
+  const avatarInfo = getAvatarInfo(userRole);
+
   return (
     <header style={styles.header}>
       <div style={styles.headerLeft}>
@@ -9,7 +31,7 @@ export default function Header({ userRole, handleRoleChange, searchVal, setSearc
         <div>
           <div style={styles.brandTitle}>YANDU NEXTGEN ASABRI</div>
           <div style={styles.brandSub}>
-            {userRole === 'CSO' ? 'CSO KANTOR CABANG' : 'DIVISI AKTUARIA'}
+            {getRoleLabel(userRole)}
           </div>
         </div>
       </div>
@@ -33,11 +55,13 @@ export default function Header({ userRole, handleRoleChange, searchVal, setSearc
             onChange={(e) => handleRoleChange(e.target.value)}
           >
             <option value="CSO">CSO Kancab</option>
-            <option value="AKTUARIA">Divisi Aktuaria</option>
+            <option value="AKTUARIA_MAKER">Analis Aktuaria (Maker)</option>
+            <option value="AKTUARIA_CHECKER">Kabid Aktuaria (Checker)</option>
+            <option value="AKTUARIA_APPROVER">Kadiv Aktuaria (Approver)</option>
           </select>
         </div>
-        <div style={{ ...styles.userAvatar, background: userRole === 'CSO' ? '#2563eb' : '#059669' }}>
-          {userRole === 'CSO' ? 'CS' : 'DA'}
+        <div style={{ ...styles.userAvatar, background: avatarInfo.bg }}>
+          {avatarInfo.text}
         </div>
       </div>
     </header>

@@ -85,84 +85,117 @@ export const initialActuaryParameters = [
   }
 ];
 
-// DETAILED AUDIT LOGS FOR PARAMETER CHANGES
+// INITIAL PENDING APPROVALS FOR BERJENJANG WORKFLOW (MAKER -> CHECKER -> APPROVER)
+export const initialPendingApprovals = [
+  {
+    id: 501,
+    paramId: 2,
+    namaParam: "Suku Bunga NTTA",
+    kategori: "Nilai Tunai TA (NTTA)",
+    nilaiLama: "0.45 %",
+    nilaiBaru: 0.50,
+    tglMulai: "2027-01-01",
+    tglSelesai: "2027-12-31",
+    landasan: "Nota Dinas Kajian Investasi & SK Penyesuaian NTTA No. 77/2026",
+    catatanPengajuan: "Penyesuaian yield portofolio investasi SBN dan proyeksi cadangan aktuaria tahun 2027.",
+    diajukanOleh: "Ratna Meilani (Analis Aktuaria)",
+    tglPengajuan: "02-09-2026 09:30:15",
+    diverifikasiOleh: null,
+    tglVerifikasi: null,
+    catatanVerifikasi: "",
+    disetujuiOleh: null,
+    tglApproval: null,
+    catatanApproval: "",
+    status: "PENDING" // 'PENDING' | 'DISETUJUI' | 'DITOLAK'
+  }
+];
+
+// DETAILED AUDIT LOGS FOR PARAMETER CHANGES WITH MULTI-ACTOR APPROVAL
 export const initialParameterChangeLogs = [
   {
     id: 401,
     paramId: 4,
     namaParam: "Alokasi Manfaat Peserta & Dana Risiko",
     timestamp: "01-01-2026 09:00:00",
-    aktor: "Divisi Aktuaria - Dr. Hendra",
+    diajukanOleh: "Ratna Meilani (Analis Aktuaria)",
+    diverifikasiOleh: "Budi Santoso (Kabid Aktuaria)",
+    disetujuiOleh: "Dr. Hendra, FSAI (Kadiv Aktuaria)",
     nilaiLama: "100.00 % (Peserta)",
     nilaiBaru: "90.00 % (Peserta) / 10.00 % (Risiko)",
     tglMulai: "2026-01-01",
     tglSelesai: "2026-12-31",
     landasan: "SK Direksi No. 18/2026 Alokasi Risiko THT",
-    tipeAksi: "Penetapan Parameter Baru"
+    catatan: "Sesuai keputusan RUPS dan persetujuan OJK untuk cadangan dana risiko.",
+    tipeAksi: "Penetapan Parameter Baru",
+    statusApproval: "DISETUJUI"
   },
   {
     id: 101,
     paramId: 1,
     namaParam: "Suku Bunga TA",
     timestamp: "06-08-2026 14:20:15",
-    aktor: "Divisi Aktuaria - Dr. Hendra",
+    diajukanOleh: "Ratna Meilani (Analis Aktuaria)",
+    diverifikasiOleh: "Budi Santoso (Kabid Aktuaria)",
+    disetujuiOleh: "Dr. Hendra, FSAI (Kadiv Aktuaria)",
     nilaiLama: "0.20 %",
     nilaiBaru: "0.25 %",
     tglMulai: "2026-06-06",
     tglSelesai: "2026-12-06",
     landasan: "SK Direksi No. 44/2026",
-    tipeAksi: "Penambahan Rate Persenan Baru"
+    catatan: "Penyesuaian tingkat suku bunga acuan pasar semester II.",
+    tipeAksi: "Penambahan Rate Persenan Baru",
+    statusApproval: "DISETUJUI"
   },
   {
     id: 100,
     paramId: 1,
     namaParam: "Suku Bunga TA",
     timestamp: "05-01-2025 09:15:30",
-    aktor: "Divisi Aktuaria - Ratna M.",
+    diajukanOleh: "Ratna Meilani (Analis Aktuaria)",
+    diverifikasiOleh: "Budi Santoso (Kabid Aktuaria)",
+    disetujuiOleh: "Dr. Hendra, FSAI (Kadiv Aktuaria)",
     nilaiLama: "0.15 %",
     nilaiBaru: "0.20 %",
     tglMulai: "2025-01-01",
     tglSelesai: "2026-06-05",
     landasan: "SK Direksi No. 12/2025",
-    tipeAksi: "Penambahan Rate Persenan Baru"
+    catatan: "Penetapan suku bunga berkala awal tahun buku 2025.",
+    tipeAksi: "Penambahan Rate Persenan Baru",
+    statusApproval: "DISETUJUI"
   },
   {
     id: 201,
     paramId: 2,
     namaParam: "Suku Bunga NTTA",
     timestamp: "01-01-2026 10:00:00",
-    aktor: "Divisi Aktuaria - Ratna M.",
+    diajukanOleh: "Ratna Meilani (Analis Aktuaria)",
+    diverifikasiOleh: "Budi Santoso (Kabid Aktuaria)",
+    disetujuiOleh: "Dr. Hendra, FSAI (Kadiv Aktuaria)",
     nilaiLama: "0.40 %",
     nilaiBaru: "0.45 %",
     tglMulai: "2026-01-01",
     tglSelesai: "2026-12-31",
     landasan: "SK Direksi No. 02/2026",
-    tipeAksi: "Penambahan Rate Persenan Baru"
+    catatan: "Penyesuaian tabel aktuaria NTTA tahunan.",
+    tipeAksi: "Penambahan Rate Persenan Baru",
+    statusApproval: "DISETUJUI"
   },
   {
     id: 301,
     paramId: 3,
     namaParam: "Tarif Premi THT",
     timestamp: "01-03-2026 11:45:10",
-    aktor: "Divisi Aktuaria - Budi S.",
+    diajukanOleh: "Ratna Meilani (Analis Aktuaria)",
+    diverifikasiOleh: "Budi Santoso (Kabid Aktuaria)",
+    disetujuiOleh: "Dr. Hendra, FSAI (Kadiv Aktuaria)",
     nilaiLama: "3.00 %",
     nilaiBaru: "3.25 %",
     tglMulai: "2026-03-01",
     tglSelesai: "2027-02-28",
     landasan: "PP No. 54/2026",
-    tipeAksi: "Penambahan Rate Persenan Baru"
-  },
-  {
-    id: 300,
-    paramId: 3,
-    namaParam: "Tarif Premi THT",
-    timestamp: "01-01-2024 08:30:00",
-    aktor: "Divisi Aktuaria - Dr. Hendra",
-    nilaiLama: "2.75 %",
-    nilaiBaru: "3.00 %",
-    tglMulai: "2024-01-01",
-    tglSelesai: "2026-02-28",
-    landasan: "PP No. 102/2023",
-    tipeAksi: "Penambahan Rate Persenan Baru"
+    catatan: "Penyesuaian iuran pensiun sesuai regulasi pemerintah.",
+    tipeAksi: "Penambahan Rate Persenan Baru",
+    statusApproval: "DISETUJUI"
   }
 ];
+

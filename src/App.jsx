@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 
 // Data imports
 import { initialClaimData } from './data/mockClaims';
-import { initialActuaryParameters, initialParameterChangeLogs } from './data/mockParameters';
+import { initialActuaryParameters, initialParameterChangeLogs, initialPendingApprovals } from './data/mockParameters';
 import { initialEdosirList, initialSptbList } from './data/mockEdosirSptb';
 
 // Utils
@@ -41,26 +41,33 @@ import ReportKuPreviewModal from './features/reports/modals/ReportKuPreviewModal
 
 // Feature: Parameter Aktuaria
 import ParameterAktuariaView from './features/parameter-aktuaria/ParameterAktuariaView';
+import ParameterApprovalListView from './features/parameter-aktuaria/ParameterApprovalListView';
 import ParamManageModal from './features/parameter-aktuaria/modals/ParamManageModal';
 import AddRateModal from './features/parameter-aktuaria/modals/AddRateModal';
 import ParamLogModal from './features/parameter-aktuaria/modals/ParamLogModal';
+import ParamApprovalModal from './features/parameter-aktuaria/modals/ParamApprovalModal';
 
 export default function App() {
   // Global Data State
   const [claims, setClaims] = useState(initialClaimData);
   const [actuaryParams, setActuaryParams] = useState(initialActuaryParameters);
   const [paramChangeLogs, setParamChangeLogs] = useState(initialParameterChangeLogs);
+  const [pendingApprovals, setPendingApprovals] = useState(initialPendingApprovals);
+  const [selectedApprovalId, setSelectedApprovalId] = useState(null);
   const [edosirList] = useState(initialEdosirList);
   const [sptbList] = useState(initialSptbList);
 
-  // Role State (CSO vs AKTUARIA) with LocalStorage persistence
+  // Role State (CSO, AKTUARIA_MAKER, AKTUARIA_CHECKER, AKTUARIA_APPROVER) with LocalStorage persistence
   const [userRole, setUserRole] = useState(() => {
-    return localStorage.getItem('yandu_user_role') || 'AKTUARIA';
+    const saved = localStorage.getItem('yandu_user_role');
+    if (saved === 'AKTUARIA') return 'AKTUARIA_APPROVER';
+    return saved || 'AKTUARIA_APPROVER';
   });
 
   // Navigation State
   const [activePage, setActivePage] = useState('dataPeserta');
   const [reportExpanded, setReportExpanded] = useState(true);
+  const [approvalExpanded, setApprovalExpanded] = useState(true);
 
   // Search & Filter State for Data Peserta
   const [searchVal, setSearchVal] = useState('');
@@ -117,6 +124,7 @@ export default function App() {
   const [newRateTglMulai, setNewRateTglMulai] = useState('2026-12-07');
   const [newRateTglSelesai, setNewRateTglSelesai] = useState('2027-12-31');
   const [newRateLandasan, setNewRateLandasan] = useState('');
+  const [newRateCatatan, setNewRateCatatan] = useState('');
 
   // Skorsing Modal State
   const [showSkorsingManageModal, setShowSkorsingManageModal] = useState(false);
@@ -147,12 +155,21 @@ export default function App() {
     setUserRole(newRole);
     localStorage.setItem('yandu_user_role', newRole);
     if (newRole === 'CSO') {
-      if (['reportKU', 'parameterAktuaria'].includes(activePage)) {
+      if (['reportKU', 'parameterAktuaria', 'approvalParameter'].includes(activePage)) {
         setActivePage('dataPeserta');
       }
       addToast('👤 Hak Akses Diperbarui: CSO Kancab (Akses Edit: MKG & Skorsing)');
-    } else if (newRole === 'AKTUARIA') {
-      addToast('🛡️ Hak Akses Diperbarui: Divisi Aktuaria (Akses Peninjauan MKG/Skorsing Read-Only & Parameter/KU)');
+    } else if (newRole === 'AKTUARIA_MAKER') {
+      if (activePage === 'approvalParameter') {
+        setActivePage('parameterAktuaria');
+      }
+      addToast('📝 Hak Akses Diperbarui: Analis Aktuaria (Maker — Pembuat Usulan Perubahan Rate)');
+    } else if (newRole === 'AKTUARIA_CHECKER') {
+      addToast('🔍 Hak Akses Diperbarui: Kabid Aktuaria (Checker — Verifikasi Usulan Tahap 1)');
+    } else if (newRole === 'AKTUARIA_APPROVER') {
+      addToast('🛡️ Hak Akses Diperbarui: Kadiv Aktuaria (Approver — Pengesahan Final Tahap 2)');
+    } else {
+      addToast('🛡️ Hak Akses Diperbarui: Divisi Aktuaria');
     }
   };
 
@@ -170,6 +187,7 @@ export default function App() {
   const selectedClaim = claims.find(c => c.id === selectedClaimId);
   const selectedParam = actuaryParams.find(p => p.id === selectedParamId);
   const selectedParamLog = actuaryParams.find(p => p.id === selectedParamLogId);
+  const selectedApprovalProposal = pendingApprovals.find(p => p.id === selectedApprovalId);
 
   // Field Edit Modal Triggers
   const handleOpenEditField = (fieldName, fieldLabel, inputType = 'text', suffix = '') => {
@@ -311,24 +329,76 @@ export default function App() {
     addToast(`🗑️ Entri periode skorsing berhasil dihapus!`);
   };
 
-  // Handler: Add New Actuary Rate
+  // Handler: Propose New Actuary Rate (Maker Action -> Enters Tier 1 Approval)
   const handleAddNewRateSubmit = (e) => {
     e.preventDefault();
     if (!selectedParam) return;
 
     const rateVal = parseFloat(newRatePersen) || 0;
+    const activeRate = selectedParam.history.find(h => h.status === 'AKTIF') || selectedParam.history[0];
+    const timestampNow = new Date().toLocaleString('id-ID');
+
+    let makerName = 'Ratna Meilani (Analis Aktuaria)';
+    if (userRole === 'AKTUARIA_CHECKER') makerName = 'Budi Santoso (Kabid Aktuaria)';
+    if (userRole === 'AKTUARIA_APPROVER') makerName = 'Dr. Hendra, FSAI (Kadiv Aktuaria)';
+
+    const newProposal = {
+      id: Date.now(),
+      paramId: selectedParam.id,
+      namaParam: selectedParam.nama,
+      kategori: selectedParam.kategori,
+      nilaiLama: selectedParam.id === 4 
+        ? `${activeRate?.persen || 0}% (Peserta) / ${Math.max(0, 100 - (activeRate?.persen || 0))}% (Risiko)` 
+        : `${activeRate?.persen || 0} %`,
+      nilaiBaru: rateVal,
+      tglMulai: newRateTglMulai,
+      tglSelesai: newRateTglSelesai,
+      landasan: newRateLandasan || "SK Penyesuaian Parameter Aktuaria",
+      catatanPengajuan: newRateCatatan || "Usulan penyesuaian berkala kajian aktuaria",
+      diajukanOleh: makerName,
+      tglPengajuan: timestampNow,
+      diverifikasiOleh: null,
+      tglVerifikasi: null,
+      catatanVerifikasi: "",
+      disetujuiOleh: null,
+      tglApproval: null,
+      catatanApproval: "",
+      status: "PENDING"
+    };
+
+    setPendingApprovals(prev => [newProposal, ...prev.filter(p => p.paramId !== selectedParam.id)]);
+
+    addToast(`📤 Usulan Rate Baru (${rateVal}%) berhasil diajukan dengan status PENDING!`);
+    setShowAddRateModal(false);
+    setNewRatePersen('');
+    setNewRateLandasan('');
+    setNewRateCatatan('');
+  };
+
+  // Handler: Persetujuan Usulan oleh Kabid atau Kadiv Aktuaria (1x Approval)
+  const handleApproveProposal = (proposalId, catatan) => {
+    const proposal = pendingApprovals.find(p => p.id === proposalId);
+    if (!proposal) return;
+
+    const timestampNow = new Date().toLocaleString('id-ID');
+    const rateVal = proposal.nilaiBaru;
+    const actorName = userRole === 'AKTUARIA_CHECKER' 
+      ? 'Budi Santoso, M.Act (Kabid Aktuaria)' 
+      : 'Dr. Hendro P., FSAI (Kadiv Aktuaria)';
+
     const newRateObj = {
       id: Date.now(),
       persen: rateVal,
-      tglMulai: newRateTglMulai,
-      tglSelesai: newRateTglSelesai,
-      diubahOleh: "Divisi Aktuaria - Dr. Hendra",
-      landasan: newRateLandasan || "SK Direksi Penyesuaian Aktuaria",
+      tglMulai: proposal.tglMulai,
+      tglSelesai: proposal.tglSelesai,
+      diubahOleh: `${proposal.diajukanOleh} (Disetujui: ${actorName})`,
+      landasan: proposal.landasan,
       status: "AKTIF"
     };
 
+    // Update active rates in actuaryParams
     setActuaryParams(prev => prev.map(param => {
-      if (param.id === selectedParamId) {
+      if (param.id === proposal.paramId) {
         const updatedHistory = param.history.map(h => ({ ...h, status: "HISTORI" }));
         return {
           ...param,
@@ -341,24 +411,66 @@ export default function App() {
     const risikoCalculated = Math.max(0, 100 - rateVal);
     const newLogObj = {
       id: Date.now(),
-      paramId: selectedParam.id,
-      namaParam: selectedParam.nama,
-      timestamp: new Date().toLocaleString('id-ID'),
-      aktor: "Divisi Aktuaria - Dr. Hendra",
-      nilaiLama: `${selectedParam.history[0]?.persen || 0} %`,
-      nilaiBaru: selectedParam.id === 4 ? `${rateVal} % (Peserta) / ${risikoCalculated} % (Risiko)` : `${rateVal} %`,
-      tglMulai: newRateTglMulai,
-      tglSelesai: newRateTglSelesai,
-      landasan: newRateLandasan || "SK Direksi Penyesuaian Aktuaria",
-      tipeAksi: "Penambahan Rate Persenan Baru"
+      paramId: proposal.paramId,
+      namaParam: proposal.namaParam,
+      timestamp: timestampNow,
+      diajukanOleh: proposal.diajukanOleh,
+      tglPengajuan: proposal.tglPengajuan,
+      diverifikasiOleh: actorName,
+      tglVerifikasi: timestampNow,
+      disetujuiOleh: actorName,
+      tglApproval: timestampNow,
+      nilaiLama: proposal.nilaiLama,
+      nilaiBaru: proposal.paramId === 4 
+        ? `${rateVal} % (Peserta) / ${risikoCalculated} % (Risiko)` 
+        : `${rateVal} %`,
+      tglMulai: proposal.tglMulai,
+      tglSelesai: proposal.tglSelesai,
+      landasan: proposal.landasan,
+      catatan: catatan || "Disetujui dan diberlakukan secara resmi",
+      tipeAksi: `Persetujuan Parameter (${actorName.includes('Kabid') ? 'Kabid Aktuaria' : 'Kadiv Aktuaria'})`,
+      statusApproval: "DISETUJUI"
     };
 
     setParamChangeLogs(prev => [newLogObj, ...prev]);
+    setPendingApprovals(prev => prev.filter(p => p.id !== proposalId));
 
-    addToast(`✅ Rate Persenan Baru (${rateVal}%) berhasil ditambahkan & menjadi rate AKTIF!`);
-    setShowAddRateModal(false);
-    setNewRatePersen('');
-    setNewRateLandasan('');
+    addToast(`✨ Usulan Rate Parameter resmi DISETUJUI & DITERBITKAN oleh ${actorName.includes('Kabid') ? 'Kabid Aktuaria' : 'Kadiv Aktuaria'}!`);
+    setSelectedApprovalId(null);
+  };
+
+  // Handler: Penolakan Usulan oleh Kabid atau Kadiv
+  const handleRejectProposal = (proposalId, alasan, rejectedByRole) => {
+    const proposal = pendingApprovals.find(p => p.id === proposalId);
+    if (!proposal) return;
+
+    const timestampNow = new Date().toLocaleString('id-ID');
+    const rejectLogObj = {
+      id: Date.now(),
+      paramId: proposal.paramId,
+      namaParam: proposal.namaParam,
+      timestamp: timestampNow,
+      diajukanOleh: proposal.diajukanOleh,
+      tglPengajuan: proposal.tglPengajuan,
+      diverifikasiOleh: rejectedByRole.includes('Kabid') ? `Ditolak oleh ${rejectedByRole}` : (proposal.diverifikasiOleh || '-'),
+      tglVerifikasi: proposal.tglVerifikasi || timestampNow,
+      disetujuiOleh: rejectedByRole.includes('Kadiv') ? `Ditolak oleh ${rejectedByRole}` : null,
+      tglApproval: rejectedByRole.includes('Kadiv') ? timestampNow : null,
+      nilaiLama: proposal.nilaiLama,
+      nilaiBaru: `${proposal.nilaiBaru} % (Ditolak)`,
+      tglMulai: proposal.tglMulai,
+      tglSelesai: proposal.tglSelesai,
+      landasan: proposal.landasan,
+      catatan: `Penolakan oleh ${rejectedByRole}: "${alasan}"`,
+      tipeAksi: `Penolakan Usulan (${rejectedByRole})`,
+      statusApproval: "DITOLAK"
+    };
+
+    setParamChangeLogs(prev => [rejectLogObj, ...prev]);
+    setPendingApprovals(prev => prev.filter(p => p.id !== proposalId));
+
+    addToast(`❌ Usulan ditolak oleh ${rejectedByRole}. Catatan penolakan tersimpan di Audit Log.`);
+    setSelectedApprovalId(null);
   };
 
   const handleSaveModal = () => {
@@ -439,6 +551,9 @@ export default function App() {
           userRole={userRole}
           reportExpanded={reportExpanded}
           setReportExpanded={setReportExpanded}
+          approvalExpanded={approvalExpanded}
+          setApprovalExpanded={setApprovalExpanded}
+          pendingApprovals={pendingApprovals}
           addToast={addToast}
         />
 
@@ -494,7 +609,7 @@ export default function App() {
             />
           )}
 
-          {activePage === 'reportKU' && userRole === 'AKTUARIA' && (
+          {activePage === 'reportKU' && (userRole.startsWith('AKTUARIA') || userRole === 'AKTUARIA') && (
             <ReportKuView 
               filterKuOpen={filterKuOpen}
               setFilterKuOpen={setFilterKuOpen}
@@ -516,12 +631,22 @@ export default function App() {
             />
           )}
 
-          {activePage === 'parameterAktuaria' && userRole === 'AKTUARIA' && (
+          {activePage === 'parameterAktuaria' && (userRole.startsWith('AKTUARIA') || userRole === 'AKTUARIA') && (
             <ParameterAktuariaView 
               actuaryParams={actuaryParams}
               setSelectedParamId={setSelectedParamId}
               setShowAddRateModal={setShowAddRateModal}
               setSelectedParamLogId={setSelectedParamLogId}
+              pendingApprovals={pendingApprovals}
+              userRole={userRole}
+            />
+          )}
+
+          {activePage === 'approvalParameter' && (userRole === 'AKTUARIA_CHECKER' || userRole === 'AKTUARIA_APPROVER' || userRole === 'AKTUARIA') && (
+            <ParameterApprovalListView 
+              pendingApprovals={pendingApprovals}
+              onOpenApprovalModal={(id) => setSelectedApprovalId(id)}
+              userRole={userRole}
             />
           )}
         </main>
@@ -603,6 +728,7 @@ export default function App() {
         selectedParam={selectedParam}
         onClose={() => setSelectedParamId(null)}
         onOpenAddRate={() => setShowAddRateModal(true)}
+        onOpenLog={(paramId) => setSelectedParamLogId(paramId)}
       />
 
       <AddRateModal 
@@ -616,6 +742,8 @@ export default function App() {
         setNewRateTglSelesai={setNewRateTglSelesai}
         newRateLandasan={newRateLandasan}
         setNewRateLandasan={setNewRateLandasan}
+        newRateCatatan={newRateCatatan}
+        setNewRateCatatan={setNewRateCatatan}
         onClose={() => setShowAddRateModal(false)}
         onSubmit={handleAddNewRateSubmit}
       />
@@ -625,6 +753,18 @@ export default function App() {
         paramChangeLogs={paramChangeLogs}
         onClose={() => setSelectedParamLogId(null)}
       />
+
+      {/* MODAL APPROVAL PARAMETER (1X APPROVAL OLEH KABID ATAU KADIV) */}
+      {selectedApprovalProposal && (
+        <ParamApprovalModal 
+          proposal={selectedApprovalProposal}
+          selectedParam={actuaryParams.find(p => p.id === selectedApprovalProposal.paramId)}
+          userRole={userRole}
+          onClose={() => setSelectedApprovalId(null)}
+          onApprove={handleApproveProposal}
+          onReject={handleRejectProposal}
+        />
+      )}
 
       <ReportPenyelesaianPreviewModal 
         show={showReportPreviewModal}

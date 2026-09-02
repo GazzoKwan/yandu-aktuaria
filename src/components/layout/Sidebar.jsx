@@ -7,8 +7,13 @@ export default function Sidebar({
   userRole,
   reportExpanded,
   setReportExpanded,
+  approvalExpanded = true,
+  setApprovalExpanded,
+  pendingApprovals = [],
   addToast
 }) {
+  const isApproverRole = userRole === 'AKTUARIA_CHECKER' || userRole === 'AKTUARIA_APPROVER' || userRole === 'AKTUARIA';
+
   return (
     <aside style={styles.sidebar}>
       <div>
@@ -52,7 +57,7 @@ export default function Sidebar({
         </div>
 
         {/* MENUS FOR DIVISI AKTUARIA (FSD EXTENDED MODULES) */}
-        {userRole === 'AKTUARIA' && (
+        {(userRole.startsWith('AKTUARIA') || userRole === 'AKTUARIA') && (
           <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
             {/* UC-AKT-003: REPORT KU */}
             <div 
@@ -62,12 +67,69 @@ export default function Sidebar({
               <span>💰 Report KU (Dapem & Non)</span>
             </div>
 
-            {/* UC-AKT-005: PERUBAHAN PARAMETER */}
-            <div 
-              style={activePage === 'parameterAktuaria' ? styles.sidebarNavItemActive : styles.sidebarNavItem}
-              onClick={() => setActivePage('parameterAktuaria')}
-            >
-              <span>⚙️ Perubahan Parameter</span>
+            {/* UC-AKT-005: PERUBAHAN PARAMETER (DROPDOWN PARENT) */}
+            <div style={{ marginTop: 4 }}>
+              <div 
+                style={{
+                  ...styles.sidebarParentNav,
+                  backgroundColor: (activePage === 'parameterAktuaria' || activePage === 'approvalParameter') ? '#eff6ff' : '#f8fafc',
+                  borderColor: (activePage === 'parameterAktuaria' || activePage === 'approvalParameter') ? '#bfdbfe' : '#f1f5f9'
+                }}
+                onClick={() => setApprovalExpanded && setApprovalExpanded(!approvalExpanded)}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span>⚙️ Perubahan Parameter</span>
+                  {isApproverRole && pendingApprovals.length > 0 && (
+                    <span style={{
+                      background: '#d97706',
+                      color: '#ffffff',
+                      fontSize: '10px',
+                      padding: '1px 6px',
+                      borderRadius: '10px',
+                      fontWeight: 'bold'
+                    }}>
+                      {pendingApprovals.length}
+                    </span>
+                  )}
+                </div>
+                <span style={{ fontSize: 10, color: '#1d4ed8' }}>{approvalExpanded ? '▼' : '▶'}</span>
+              </div>
+
+              {approvalExpanded && (
+                <div style={{ marginLeft: 12, marginTop: 4, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  {/* SUB-MENU 1: DAFTAR PARAMETER */}
+                  <div 
+                    style={activePage === 'parameterAktuaria' ? styles.sidebarSubItemActive : styles.sidebarSubItem}
+                    onClick={() => setActivePage('parameterAktuaria')}
+                  >
+                    📄 Daftar Parameter
+                  </div>
+
+                  {/* SUB-MENU 2: APPROVAL (KHUSUS KABID & KADIV AKTUARIA) */}
+                  {isApproverRole && (
+                    <div 
+                      style={activePage === 'approvalParameter' ? { ...styles.sidebarSubItemActive, backgroundColor: '#fef3c7', color: '#b45309' } : styles.sidebarSubItem}
+                      onClick={() => setActivePage('approvalParameter')}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                        <span>⚖️ Approval</span>
+                        {pendingApprovals.length > 0 && (
+                          <span style={{
+                            background: '#d97706',
+                            color: '#ffffff',
+                            fontSize: '10px',
+                            padding: '1px 6px',
+                            borderRadius: '10px',
+                            fontWeight: 'bold'
+                          }}>
+                            {pendingApprovals.length}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* DISABLED AUDIT LOG & TRACKABILITY MENU PER USER REQUEST */}
@@ -99,12 +161,19 @@ export default function Sidebar({
 
       <div style={styles.sidebarFooter}>
         <div style={{ fontWeight: 'bold', fontSize: 12 }}>
-          Mode Hak Akses: {userRole === 'CSO' ? 'CSO Kancab' : 'Divisi Aktuaria'}
+          Mode Akses: {
+            userRole === 'CSO' ? 'CSO Kancab' :
+            userRole === 'AKTUARIA_MAKER' ? 'Analis Aktuaria (Maker)' :
+            userRole === 'AKTUARIA_CHECKER' ? 'Kabid Aktuaria (Checker)' :
+            userRole === 'AKTUARIA_APPROVER' ? 'Kadiv Aktuaria (Approver)' : 'Divisi Aktuaria'
+          }
         </div>
         <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
           {userRole === 'CSO' 
             ? 'Hak Edit: MKG & Skorsing Aktif.' 
-            : 'Hak Akses Peninjauan MKG/Skorsing (Read-Only).'}
+            : isApproverRole 
+              ? 'Wewenang Verifikasi & Pengesahan Parameter Aktif.'
+              : 'Wewenang Pengusulan Parameter Baru (Maker).'}
         </div>
       </div>
     </aside>
