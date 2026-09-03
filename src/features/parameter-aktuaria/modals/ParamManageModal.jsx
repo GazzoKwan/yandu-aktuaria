@@ -3,13 +3,16 @@ import { styles } from '../../../styles/themeStyles';
 
 export default function ParamManageModal({
   selectedParam,
+  pendingApprovals = [],
   onClose,
   onOpenAddRate,
-  onOpenLog
+  onOpenLog,
+  onOpenApprovalModal
 }) {
   if (!selectedParam) return null;
 
   const activeRate = selectedParam.history.find(h => h.status === 'AKTIF') || selectedParam.history[0];
+  const activeProposal = pendingApprovals.find(p => p.paramId === selectedParam.id);
 
   return (
     <div style={styles.modalBackdrop}>
@@ -30,6 +33,54 @@ export default function ParamManageModal({
         {/* Modal Body */}
         <div style={{ padding: '24px', overflowY: 'auto', flex: 1, backgroundColor: '#ffffff' }}>
           
+          {/* BANNER JIKA PARAMETER SEDANG TERKUNCI (PENDING APPROVAL) */}
+          {activeProposal && (
+            <div style={{
+              background: '#fffbeb',
+              border: '1.5px solid #fde68a',
+              borderRadius: '10px',
+              padding: '12px 18px',
+              marginBottom: '20px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '12px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div>
+                  <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#92400e' }}>
+                    Parameter Sedang Dalam Proses Usulan Perubahan
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#78350f', marginTop: '2px' }}>
+                    Terdapat usulan rate baru (<strong>{activeProposal.nilaiBaru}%</strong>) yang diajukan oleh <strong>{activeProposal.diajukanOleh}</strong> dengan status <strong>Pending Approval</strong>. Perubahan nilai baru dapat diajukan kembali setelah proses persetujuan usulan selesai.
+                  </div>
+                </div>
+              </div>
+              {onOpenApprovalModal && (
+                <button
+                  type="button"
+                  style={{
+                    background: '#eff6ff',
+                    color: '#1d4ed8',
+                    border: '1px solid #bfdbfe',
+                    padding: '6px 14px',
+                    borderRadius: '6px',
+                    fontSize: '12px',
+                    fontWeight: 'bold',
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => {
+                    onClose();
+                    onOpenApprovalModal(activeProposal.id);
+                  }}
+                >
+                  Lihat Usulan Approval ➔
+                </button>
+              )}
+            </div>
+          )}
+
           {/* RINGKASAN PARAMETER & ACTION TOOLBAR */}
           <div style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '12px', padding: '18px 20px', marginBottom: '22px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', marginBottom: '16px' }}>
@@ -47,27 +98,49 @@ export default function ParamManageModal({
 
               {/* ACTION BUTTONS (UBAH RATE & LOG AUDIT) */}
               <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                <button 
-                  style={{
-                    background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
-                    color: '#ffffff',
-                    border: 'none',
-                    padding: '9px 18px',
-                    borderRadius: '8px',
-                    fontSize: '13px',
-                    fontWeight: 'bold',
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    boxShadow: '0 4px 12px rgba(37,99,235,0.25)'
-                  }}
-                  onClick={onOpenAddRate}
-                  title="Ajukan usulan penambahan atau perubahan nilai rate baru"
-                >
-                  <span>✏️</span>
-                  <span>Ubah / Usulkan Rate</span>
-                </button>
+                {activeProposal ? (
+                  <button 
+                    disabled
+                    style={{
+                      background: '#f1f5f9',
+                      color: '#94a3b8',
+                      border: '1px solid #cbd5e1',
+                      padding: '9px 18px',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      fontWeight: 'bold',
+                      cursor: 'not-allowed',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}
+                    title="Tidak dapat mengajukan perubahan baru karena usulan sebelumnya masih menunggu approval"
+                  >
+                    <span>Ubah / Usulkan Rate (Pending Approval)</span>
+                  </button>
+                ) : (
+                  <button 
+                    style={{
+                      background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+                      color: '#ffffff',
+                      border: 'none',
+                      padding: '9px 18px',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      boxShadow: '0 4px 12px rgba(37,99,235,0.25)'
+                    }}
+                    onClick={onOpenAddRate}
+                    title="Ajukan usulan penambahan atau perubahan nilai rate baru"
+                  >
+                    <span>✏️</span>
+                    <span>Ubah / Usulkan Rate</span>
+                  </button>
+                )}
 
                 <button 
                   style={{

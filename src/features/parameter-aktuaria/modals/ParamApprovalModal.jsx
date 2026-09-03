@@ -16,6 +16,7 @@ export default function ParamApprovalModal({
   if (!proposal) return null;
 
   const isPending = proposal.status === 'PENDING';
+  const isApproved = proposal.status === 'DISETUJUI';
   const canApprove = (userRole === 'AKTUARIA_CHECKER' || userRole === 'AKTUARIA_APPROVER' || userRole === 'AKTUARIA') && isPending;
 
   const getActorLabel = () => {
@@ -46,7 +47,7 @@ export default function ParamApprovalModal({
         <div style={styles.modalHeader}>
           <div>
             <div style={{ fontSize: 10, color: '#f59e0b', fontWeight: 'bold', letterSpacing: '0.5px' }}>
-              UC-AKT-005: PERSETUJUAN PARAMETER AKTUARIA (1x APPROVAL)
+              UC-AKT-005: PERSETUJUAN PARAMETER AKTUARIA
             </div>
             <h2 style={{ fontSize: 16, marginTop: 2, display: 'flex', alignItems: 'center', gap: '8px' }}>
               👁️ Detail Usulan Perubahan — {proposal.namaParam}
@@ -74,14 +75,14 @@ export default function ParamApprovalModal({
               maxWidth: '460px',
               margin: '0 auto'
             }}>
-              {/* Garis Penghubung Hijau Solid */}
+              {/* Garis Penghubung */}
               <div style={{
                 position: 'absolute',
                 top: '24px',
                 left: '46px',
                 right: '46px',
                 height: '2.5px',
-                backgroundColor: '#388e3c',
+                backgroundColor: isApproved ? '#388e3c' : '#cbd5e1',
                 zIndex: 1
               }} />
 
@@ -147,7 +148,8 @@ export default function ParamApprovalModal({
                   width: '48px',
                   height: '48px',
                   borderRadius: '50%',
-                  backgroundColor: '#d7edd9',
+                  backgroundColor: isApproved ? '#d7edd9' : '#f1f5f9',
+                  border: isApproved ? 'none' : '1.5px solid #cbd5e1',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center'
@@ -156,28 +158,34 @@ export default function ParamApprovalModal({
                     width: '36px',
                     height: '36px',
                     borderRadius: '50%',
-                    backgroundColor: '#388e3c',
-                    color: '#ffffff',
+                    backgroundColor: isApproved ? '#388e3c' : '#e2e8f0',
+                    color: isApproved ? '#ffffff' : '#64748b',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center'
+                    justifyContent: 'center',
+                    fontSize: '15px',
+                    fontWeight: '700'
                   }}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="20 6 9 17 4 12"></polyline>
-                    </svg>
+                    {isApproved ? (
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                    ) : (
+                      <span>2</span>
+                    )}
                   </div>
                 </div>
                 <span style={{
                   fontSize: '15px',
                   fontWeight: '700',
-                  color: '#1e293b',
+                  color: isApproved ? '#1e293b' : '#64748b',
                   marginTop: '12px',
                   textAlign: 'center'
                 }}>
                   Diterima
                 </span>
-                <span style={{ fontSize: '11px', color: proposal.status === 'DISETUJUI' ? '#16a34a' : '#d97706', marginTop: '2px', fontWeight: '600', textAlign: 'center' }}>
-                  {proposal.status === 'DISETUJUI' ? 'Disetujui' : 'Menunggu Approval'}
+                <span style={{ fontSize: '11px', color: isApproved ? '#16a34a' : '#d97706', marginTop: '2px', fontWeight: '600', textAlign: 'center' }}>
+                  {isApproved ? 'Disetujui' : 'Menunggu Approval'}
                 </span>
               </div>
             </div>
@@ -211,8 +219,8 @@ export default function ParamApprovalModal({
                   <td style={{ padding: '12px 18px', width: '30%', background: '#f8fafc', fontWeight: 'bold', color: '#334155' }}>
                     Nilai Rate Parameter Saat Ini:
                   </td>
-                  <td style={{ padding: '12px 18px', color: '#64748b', fontWeight: '600' }}>
-                    <span style={{ textDecoration: 'line-through' }}>{proposal.nilaiLama}</span>
+                  <td style={{ padding: '12px 18px', color: '#475569', fontWeight: '600' }}>
+                    <span>{proposal.nilaiLama}</span>
                   </td>
                 </tr>
                 <tr style={{ borderBottom: '1px solid #f1f5f9', background: '#f0fdf4' }}>
@@ -263,9 +271,6 @@ export default function ParamApprovalModal({
             <div style={{ background: '#eff6ff', border: '1.5px solid #93c5fd', borderRadius: '12px', padding: '18px 20px' }}>
               <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#1e3a8a', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
                 <span>⚖️ Keputusan Persetujuan Parameter ({userRole === 'AKTUARIA_CHECKER' ? 'Kabid Aktuaria' : 'Kadiv Aktuaria'})</span>
-                <span style={{ fontSize: '10px', background: '#2563eb', color: '#fff', padding: '2px 8px', borderRadius: '10px' }}>
-                  1X APPROVAL
-                </span>
               </div>
               <div style={{ fontSize: '12px', color: '#1e40af', marginBottom: '14px' }}>
                 Persetujuan Anda sebagai <strong>{userRole === 'AKTUARIA_CHECKER' ? 'Kabid Aktuaria' : 'Kadiv Aktuaria'}</strong> akan langsung menerbitkan rate ini secara resmi dan mencatatnya ke dalam Audit Log.

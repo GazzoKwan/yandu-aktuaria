@@ -74,10 +74,10 @@ export default function ParameterApprovalListView({
                     </td>
                     <td style={styles.td}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span style={{ color: '#94a3b8', textDecoration: 'line-through', fontSize: '12px' }}>
+                        <span style={{ color: '#475569', fontSize: '13px', fontWeight: '600' }}>
                           {proposal.nilaiLama}
                         </span>
-                        <span style={{ fontSize: '11px', color: '#64748b' }}>➔</span>
+                        <span style={{ fontSize: '11px', color: '#94a3b8' }}>➔</span>
                         <span style={{ color: '#16a34a', fontWeight: '800', fontSize: '14px' }}>
                           {proposal.nilaiBaru} %
                         </span>
@@ -106,10 +106,9 @@ export default function ParameterApprovalListView({
                         fontSize: '11px',
                         fontWeight: 'bold',
                         display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '4px'
+                        alignItems: 'center'
                       }}>
-                        🟡 PENDING
+                        PENDING
                       </span>
                     </td>
                     <td style={{ ...styles.td, textAlign: 'center' }}>

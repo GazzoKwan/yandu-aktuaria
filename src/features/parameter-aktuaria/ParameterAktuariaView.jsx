@@ -78,10 +78,9 @@ export default function ParameterAktuariaView({
                           fontSize: '10px',
                           fontWeight: 'bold',
                           display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '4px'
+                          alignItems: 'center'
                         }}>
-                          ⏳ Pending Approval
+                          Pending Approval
                         </span>
                       </div>
                     )}

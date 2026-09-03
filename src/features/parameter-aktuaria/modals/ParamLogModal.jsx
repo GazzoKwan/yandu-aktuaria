@@ -73,10 +73,10 @@ export default function ParamLogModal({
                       {/* Nilai Lama vs Baru */}
                       <td style={styles.td}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <span style={{ color: '#94a3b8', textDecoration: 'line-through', fontSize: '11px' }}>
+                          <span style={{ color: '#475569', fontSize: '12px', fontWeight: '600' }}>
                             {log.nilaiLama}
                           </span>
-                          <span style={{ fontSize: '11px', color: '#64748b' }}>➔</span>
+                          <span style={{ fontSize: '11px', color: '#94a3b8' }}>➔</span>
                           <span style={{ color: '#16a34a', fontWeight: '800', fontSize: '13px' }}>
                             {log.nilaiBaru}
                           </span>
@@ -133,7 +133,7 @@ export default function ParamLogModal({
                           fontWeight: 'bold',
                           whiteSpace: 'nowrap'
                         }}>
-                          {log.statusApproval === 'DITOLAK' ? '❌ Ditolak' : '✅ Disetujui'}
+                          {log.statusApproval === 'DITOLAK' ? 'Ditolak' : 'Disetujui'}
                         </span>
                       </td>
                     </tr>

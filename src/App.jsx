@@ -334,6 +334,13 @@ export default function App() {
     e.preventDefault();
     if (!selectedParam) return;
 
+    // Guard: Jika parameter sedang dalam proses persetujuan (terkunci), tolak perubahan baru
+    const existingProposal = pendingApprovals.find(p => p.paramId === selectedParam.id);
+    if (existingProposal) {
+      alert("Parameter ini sedang memiliki usulan perubahan yang berstatus Pending Approval (Terkunci). Usulan baru tidak dapat diajukan sampai proses persetujuan usulan sebelumnya selesai.");
+      return;
+    }
+
     const rateVal = parseFloat(newRatePersen) || 0;
     const activeRate = selectedParam.history.find(h => h.status === 'AKTIF') || selectedParam.history[0];
     const timestampNow = new Date().toLocaleString('id-ID');
@@ -726,9 +733,11 @@ export default function App() {
 
       <ParamManageModal 
         selectedParam={selectedParam}
+        pendingApprovals={pendingApprovals}
         onClose={() => setSelectedParamId(null)}
         onOpenAddRate={() => setShowAddRateModal(true)}
         onOpenLog={(paramId) => setSelectedParamLogId(paramId)}
+        onOpenApprovalModal={(proposalId) => setSelectedApprovalId(proposalId)}
       />
 
       <AddRateModal 
