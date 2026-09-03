@@ -27,7 +27,7 @@ export default function DetailPesertaModal({
       <div style={{ ...styles.modalContainer, maxWidth: '960px' }}>
         <div style={styles.modalHeader}>
           <div>
-            <div style={{ fontSize: 10, color: '#f59e0b', fontWeight: 'bold' }}>
+            <div style={{ fontSize: 10, color: '#64748b', fontWeight: '800', letterSpacing: '0.5px' }}>
               {userRole === 'CSO' ? 'KOREKSI DATA PERHITUNGAN MANFAAT PESERTA' : 'DETAIL PROFIL PESERTA & DOKUMEN DIGITAL (READ-ONLY)'}
             </div>
             <h2 style={{ fontSize: 16, marginTop: 2 }}>Form Detail Peserta — {selectedClaim.nama} ({selectedClaim.spNum})</h2>
@@ -151,7 +151,7 @@ export default function DetailPesertaModal({
 
                 <div style={styles.totalBanner}>
                   <div>
-                    <div style={{ fontSize: 10, color: '#f59e0b', fontWeight: 'bold' }}>TOTAL MANFAAT CAIR KE PESERTA (POST CONDITION — {rateManfaatPeserta}%)</div>
+                    <div style={{ fontSize: 10, color: '#64748b', fontWeight: '800', letterSpacing: '0.5px' }}>TOTAL MANFAAT CAIR KE PESERTA (POST CONDITION — {rateManfaatPeserta}%)</div>
                     <div style={{ fontSize: 11, color: '#cbd5e1' }}>
                       Manfaat Kotor: {formatRupiah(newCalc.total)} • Potongan Dana Risiko ({rateUangRisiko}%): {formatRupiah(newCalc.uangRisiko)}
                     </div>

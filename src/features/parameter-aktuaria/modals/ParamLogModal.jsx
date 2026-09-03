@@ -15,7 +15,7 @@ export default function ParamLogModal({
       <div style={{ ...styles.modalContainer, maxWidth: '1180px' }}>
         <div style={styles.modalHeader}>
           <div>
-            <div style={{ fontSize: 10, color: '#f59e0b', fontWeight: 'bold' }}>UC-AKT-005: AUDIT LOG & JEJAK REKAM APPROVAL BERJENJANG</div>
+            <div style={{ fontSize: 10, color: '#64748b', fontWeight: '800', letterSpacing: '0.5px' }}>UC-AKT-005: AUDIT LOG & JEJAK REKAM APPROVAL BERJENJANG</div>
             <h2 style={{ fontSize: 16, marginTop: 2 }}>📜 Histori Perubahan & Aktor Log — {selectedParamLog.nama}</h2>
           </div>
           <button style={styles.closeBtn} onClick={onClose}>✕</button>

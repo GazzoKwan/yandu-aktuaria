@@ -20,7 +20,7 @@ export default function ParamManageModal({
         {/* Header */}
         <div style={styles.modalHeader}>
           <div>
-            <div style={{ fontSize: 10, color: '#f59e0b', fontWeight: 'bold' }}>
+            <div style={{ fontSize: 10, color: '#64748b', fontWeight: '800', letterSpacing: '0.5px' }}>
               UC-AKT-005: DETAIL & PENGELOLAAN PARAMETER AKTUARIA
             </div>
             <h2 style={{ fontSize: 16, marginTop: 2 }}>

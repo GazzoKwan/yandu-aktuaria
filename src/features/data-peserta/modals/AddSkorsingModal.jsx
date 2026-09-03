@@ -26,7 +26,7 @@ export default function AddSkorsingModal({
     <div style={{ ...styles.modalBackdrop, zIndex: 1100 }}>
       <div style={{ ...styles.subModalContainer, maxWidth: '640px' }}>
         <div style={styles.subModalHeader}>
-          <h3 style={{ fontSize: 14, color: '#fff', margin: 0 }}>
+          <h3 style={{ fontSize: 14, color: '#0f172a', margin: 0 }}>
             ➕ Tambah Periode Skorsing Baru — {selectedClaim.nama}
           </h3>
           <button style={styles.closeBtn} onClick={onClose}>✕</button>

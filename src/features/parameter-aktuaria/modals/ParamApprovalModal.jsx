@@ -46,7 +46,7 @@ export default function ParamApprovalModal({
         {/* Modal Header */}
         <div style={styles.modalHeader}>
           <div>
-            <div style={{ fontSize: 10, color: '#f59e0b', fontWeight: 'bold', letterSpacing: '0.5px' }}>
+            <div style={{ fontSize: 10, color: '#64748b', fontWeight: '800', letterSpacing: '0.5px' }}>
               UC-AKT-005: PERSETUJUAN PARAMETER AKTUARIA
             </div>
             <h2 style={{ fontSize: 16, marginTop: 2, display: 'flex', alignItems: 'center', gap: '8px' }}>

@@ -19,7 +19,7 @@ export default function EditMkgModal({
     <div style={{ ...styles.modalBackdrop, zIndex: 1100 }}>
       <div style={{ ...styles.subModalContainer, maxWidth: '540px' }}>
         <div style={styles.subModalHeader}>
-          <h3 style={{ fontSize: 14, color: '#fff', margin: 0 }}>
+          <h3 style={{ fontSize: 14, color: '#0f172a', margin: 0 }}>
             {userRole === 'CSO' ? '✏️ Edit Masa Kerja Golongan (MKG) Awal' : '👁️ Detail Masa Kerja Golongan (MKG) Awal (Read-Only)'} — {selectedClaim.nama}
           </h3>
           <button style={styles.closeBtn} onClick={onClose}>✕</button>

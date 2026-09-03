@@ -16,7 +16,7 @@ export default function ReportHutangPreviewModal({
       <div style={{ ...styles.modalContainer, maxWidth: '1360px' }}>
         <div style={styles.modalHeader}>
           <div>
-            <div style={{ fontSize: 10, color: '#f59e0b', fontWeight: 'bold' }}>PREVIEW CETAK REPORT PELAYANAN — B-2. LAPORAN UTANG KLAIM</div>
+            <div style={{ fontSize: 10, color: '#64748b', fontWeight: '800', letterSpacing: '0.5px' }}>PREVIEW CETAK REPORT PELAYANAN — B-2. LAPORAN UTANG KLAIM</div>
             <h2 style={{ fontSize: 16, marginTop: 2 }}>
               B-2. LAPORAN UTANG KLAIM — {hutangPeriode === 'Tahunan' ? `PERIODE TAHUNAN ${hutangTahun}` : `PERIODE TRIWULAN : ${hutangPeriode === '2' ? 'II' : hutangPeriode === '1' ? 'I' : hutangPeriode === '3' ? 'III' : 'IV'} TAHUN ${hutangTahun}`}
             </h2>
