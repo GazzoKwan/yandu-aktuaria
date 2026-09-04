@@ -1,5 +1,6 @@
 import React from 'react';
 import { styles } from '../../styles/themeStyles';
+import { getCategoryAbbr, formatDateDDMMYY } from '../../utils/formatters';
 
 export default function ParameterAktuariaView({
   actuaryParams,
@@ -11,19 +12,21 @@ export default function ParameterAktuariaView({
 }) {
   const getRoleBadgeLabel = (role) => {
     switch(role) {
-      case 'AKTUARIA_MAKER': return 'Analis Aktuaria (Maker)';
-      case 'AKTUARIA_CHECKER': return 'Kabid Aktuaria (Checker)';
-      case 'AKTUARIA_APPROVER': return 'Kadiv Aktuaria (Final Approver)';
+      case 'AKTUARIA_MAKER': return 'Analis Aktuaria';
+      case 'AKTUARIA_CHECKER': return 'Kabid Aktuaria';
+      case 'AKTUARIA_APPROVER': return 'Kadiv Aktuaria';
       default: return 'Divisi Aktuaria';
     }
   };
+
+  const isReadOnly = userRole === 'AKTUARIA_CHECKER' || userRole === 'AKTUARIA_APPROVER';
 
   return (
     <div>
       {/* Top Bar */}
       <div style={styles.pageTopBar}>
         <div>
-          <div style={styles.breadcrumb}>Beranda &rsaquo; Aktuaria &rsaquo; Perubahan Parameter Perhitungan Manfaat (UC-AKT-005)</div>
+          <div style={styles.breadcrumb}>Beranda &rsaquo; Aktuaria &rsaquo; Perubahan Parameter Perhitungan Manfaat</div>
           <h1 style={styles.pageTitle}>Perubahan Parameter Perhitungan Manfaat</h1>
         </div>
         <div style={styles.dateBox}>Kamis, 06 Agustus 2026</div>
@@ -35,7 +38,11 @@ export default function ParameterAktuariaView({
             📋 Daftar Parameter Utama Perhitungan Manfaat
           </h3>
           <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
-            Kelola rate persenan dan histori tanggal keberlakuan. Klik tombol <strong>Detail</strong> pada baris parameter untuk melihat riwayat serta mengakses opsi ubah rate atau log audit.
+            {isReadOnly ? (
+              <span>Daftar rate persenan dan histori tanggal keberlakuan parameter aktuaria. Role Anda memiliki hak akses <strong>Lihat Saja (Read-Only)</strong>. Klik tombol <strong>Detail</strong> untuk melihat riwayat parameter.</span>
+            ) : (
+              <span>Kelola rate persenan dan histori tanggal keberlakuan. Klik tombol <strong>Detail</strong> pada baris parameter untuk melihat riwayat serta mengakses opsi ubah rate atau log audit.</span>
+            )}
           </div>
         </div>
 
@@ -85,7 +92,7 @@ export default function ParameterAktuariaView({
                       </div>
                     )}
                   </td>
-                  <td style={styles.td}><span style={styles.badge}>{param.kategori}</span></td>
+                  <td style={styles.td}><span style={styles.badge}>{getCategoryAbbr(param.kategori)}</span></td>
                   <td style={styles.td}>
                     {param.id === 4 && activeRate ? (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', whiteSpace: 'nowrap' }}>
@@ -104,7 +111,7 @@ export default function ParameterAktuariaView({
                   </td>
                   <td style={styles.td}>
                     <span style={{ fontSize: 12, fontWeight: '600', color: '#1e293b' }}>
-                      📅 {activeRate ? `${activeRate.tglMulai} s.d. ${activeRate.tglSelesai}` : '-'}
+                      📅 {activeRate ? `${formatDateDDMMYY(activeRate.tglMulai)} s.d. ${formatDateDDMMYY(activeRate.tglSelesai)}` : '-'}
                     </span>
                   </td>
                   <td style={styles.td}>

@@ -1,5 +1,6 @@
 import React from 'react';
 import { styles } from '../../../styles/themeStyles';
+import { getCategoryAbbr, formatDateDDMMYY } from '../../../utils/formatters';
 
 export default function ParamManageModal({
   selectedParam,
@@ -7,10 +8,12 @@ export default function ParamManageModal({
   onClose,
   onOpenAddRate,
   onOpenLog,
-  onOpenApprovalModal
+  onOpenApprovalModal,
+  userRole
 }) {
   if (!selectedParam) return null;
 
+  const isReadOnly = userRole === 'AKTUARIA_CHECKER' || userRole === 'AKTUARIA_APPROVER';
   const activeRate = selectedParam.history.find(h => h.status === 'AKTIF') || selectedParam.history[0];
   const activeProposal = pendingApprovals.find(p => p.paramId === selectedParam.id);
 
@@ -21,7 +24,7 @@ export default function ParamManageModal({
         <div style={styles.modalHeader}>
           <div>
             <div style={{ fontSize: 10, color: '#64748b', fontWeight: '800', letterSpacing: '0.5px' }}>
-              UC-AKT-005: DETAIL & PENGELOLAAN PARAMETER AKTUARIA
+              DETAIL & PENGELOLAAN PARAMETER AKTUARIA
             </div>
             <h2 style={{ fontSize: 16, marginTop: 2 }}>
               👁️ Detail Parameter — {selectedParam.nama}
@@ -89,7 +92,7 @@ export default function ParamManageModal({
                   KATEGORI PROGRAM MANFAAT
                 </div>
                 <div style={{ fontSize: '18px', fontWeight: '800', color: '#1e3a8a', marginTop: '2px' }}>
-                  {selectedParam.kategori}
+                  {getCategoryAbbr(selectedParam.kategori)}
                 </div>
                 <div style={{ fontSize: '13px', fontWeight: '600', color: '#0f172a', marginTop: '2px' }}>
                   Nama Parameter: <strong>{selectedParam.nama}</strong>
@@ -98,7 +101,26 @@ export default function ParamManageModal({
 
               {/* ACTION BUTTONS (UBAH RATE & LOG AUDIT) */}
               <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                {activeProposal ? (
+                {isReadOnly ? (
+                  <div 
+                    style={{
+                      background: '#f8fafc',
+                      color: '#475569',
+                      border: '1px solid #cbd5e1',
+                      padding: '8px 14px',
+                      borderRadius: '8px',
+                      fontSize: '12px',
+                      fontWeight: '700',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}
+                    title="Role Kabid dan Kadiv hanya memiliki hak akses untuk melihat parameter (tidak dapat merubah)"
+                  >
+                    <span>👁️</span>
+                    <span>Akses Lihat Saja (Read-Only)</span>
+                  </div>
+                ) : activeProposal ? (
                   <button 
                     disabled
                     style={{
@@ -182,7 +204,7 @@ export default function ParamManageModal({
               <div style={{ background: '#ffffff', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                 <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#64748b' }}>PERIODE KEBERLAKUAN AKTIF</div>
                 <div style={{ fontSize: '12px', fontWeight: '700', color: '#1e293b', marginTop: '4px' }}>
-                  📅 {activeRate ? `${activeRate.tglMulai} s.d. ${activeRate.tglSelesai}` : '-'}
+                  📅 {activeRate ? `${formatDateDDMMYY(activeRate.tglMulai)} s.d. ${formatDateDDMMYY(activeRate.tglSelesai)}` : '-'}
                 </div>
               </div>
 
@@ -240,7 +262,7 @@ export default function ParamManageModal({
                     </td>
                     <td style={styles.td}>
                       <span style={{ fontWeight: '700', color: '#1e293b' }}>
-                        📅 {item.tglMulai} s.d. {item.tglSelesai}
+                        📅 {formatDateDDMMYY(item.tglMulai)} s.d. {formatDateDDMMYY(item.tglSelesai)}
                       </span>
                     </td>
                     <td style={styles.td}>

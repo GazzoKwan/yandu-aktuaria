@@ -1,5 +1,6 @@
 import React from 'react';
 import { styles } from '../../styles/themeStyles';
+import { getCategoryAbbr } from '../../utils/formatters';
 
 export default function ParameterApprovalListView({
   pendingApprovals = [],
@@ -13,7 +14,7 @@ export default function ParameterApprovalListView({
       {/* Top Bar */}
       <div style={styles.pageTopBar}>
         <div>
-          <div style={styles.breadcrumb}>Beranda &rsaquo; Aktuaria &rsaquo; Perubahan Parameter &rsaquo; Approval (UC-AKT-005)</div>
+          <div style={styles.breadcrumb}>Beranda &rsaquo; Aktuaria &rsaquo; Perubahan Parameter &rsaquo; Approval</div>
           <h1 style={styles.pageTitle}>⚖️ Approval Perubahan Parameter</h1>
         </div>
         <div style={styles.dateBox}>Kamis, 06 Agustus 2026</div>
@@ -35,7 +36,7 @@ export default function ParameterApprovalListView({
         </div>
 
         <div style={{ fontSize: 12, color: '#1e293b', background: '#fef3c7', padding: '6px 14px', borderRadius: '8px', border: '1px solid #fde68a' }}>
-          Role Aktif: <strong>{userRole === 'AKTUARIA_CHECKER' ? 'Kabid Aktuaria (Checker)' : userRole === 'AKTUARIA_APPROVER' ? 'Kadiv Aktuaria (Approver)' : 'Divisi Aktuaria'}</strong>
+          Role Aktif: <strong>{userRole === 'AKTUARIA_CHECKER' ? 'Kabid Aktuaria' : userRole === 'AKTUARIA_APPROVER' ? 'Kadiv Aktuaria' : 'Divisi Aktuaria'}</strong>
         </div>
       </div>
 
@@ -57,8 +58,7 @@ export default function ParameterApprovalListView({
                 <th style={styles.th}>NO</th>
                 <th style={styles.th}>NAMA PARAMETER</th>
                 <th style={styles.th}>PERUBAHAN NILAI</th>
-                <th style={styles.th}>TANGGAL BERLAKU</th>
-                <th style={styles.th}>DIAJUKAN OLEH (MAKER)</th>
+                <th style={styles.th}>DIAJUKAN OLEH</th>
                 <th style={styles.th}>STATUS APPROVAL</th>
                 <th style={{ ...styles.th, textAlign: 'center' }}>AKSI</th>
               </tr>
@@ -70,30 +70,29 @@ export default function ParameterApprovalListView({
                     <td style={styles.td}><strong>{idx + 1}</strong></td>
                     <td style={styles.td}>
                       <div style={{ fontWeight: '800', color: '#0f172a', fontSize: '14px' }}>{proposal.namaParam}</div>
-                      <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>{proposal.kategori}</div>
-                    </td>
-                    <td style={styles.td}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span style={{ color: '#475569', fontSize: '13px', fontWeight: '600' }}>
-                          {proposal.nilaiLama}
-                        </span>
-                        <span style={{ fontSize: '11px', color: '#94a3b8' }}>➔</span>
-                        <span style={{ color: '#16a34a', fontWeight: '800', fontSize: '14px' }}>
-                          {proposal.nilaiBaru} %
-                        </span>
+                      <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px', fontWeight: 'bold' }}>
+                        {getCategoryAbbr(proposal.kategori)}
                       </div>
                     </td>
                     <td style={styles.td}>
-                      <span style={{ fontSize: '12px', fontWeight: '600', color: '#1e293b' }}>
-                        📅 {proposal.tglMulai} s.d. {proposal.tglSelesai}
+                      <span style={{
+                        color: '#0f172a',
+                        fontWeight: '800',
+                        fontSize: '13px',
+                        background: '#f8fafc',
+                        border: '1px solid #cbd5e1',
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        {proposal.paramId === 4 
+                          ? `${proposal.nilaiBaru}% (Peserta)` 
+                          : `${proposal.nilaiBaru} %`}
                       </span>
                     </td>
                     <td style={styles.td}>
                       <div style={{ fontSize: '12px', fontWeight: '700', color: '#0369a1' }}>
-                        {proposal.diajukanOleh}
-                      </div>
-                      <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
-                        ⏱️ {proposal.tglPengajuan}
+                        {proposal.diajukanOleh ? proposal.diajukanOleh.replace(/\s*\(Maker\)/gi, '') : '-'}
                       </div>
                     </td>
                     <td style={styles.td}>
@@ -131,7 +130,7 @@ export default function ParameterApprovalListView({
                           whiteSpace: 'nowrap'
                         }}
                         onClick={() => onOpenApprovalModal(proposal.id)}
-                        title="Buka detail usulan untuk melihat perbandingan, catatan, serta keputusan Setuju atau Tolak"
+                        title="Buka detail usulan untuk melihat rincian tanggal, catatan, serta keputusan Setuju atau Tolak"
                       >
                         <span>👁️</span>
                         <span>Detail</span>

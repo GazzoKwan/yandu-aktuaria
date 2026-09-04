@@ -1,5 +1,6 @@
 import React from 'react';
 import { styles } from '../../../styles/themeStyles';
+import { getCategoryAbbr, formatDateDDMMYY } from '../../../utils/formatters';
 
 export default function ParamLogModal({
   selectedParamLog,
@@ -15,7 +16,7 @@ export default function ParamLogModal({
       <div style={{ ...styles.modalContainer, maxWidth: '1180px' }}>
         <div style={styles.modalHeader}>
           <div>
-            <div style={{ fontSize: 10, color: '#64748b', fontWeight: '800', letterSpacing: '0.5px' }}>UC-AKT-005: AUDIT LOG & JEJAK REKAM APPROVAL BERJENJANG</div>
+            <div style={{ fontSize: 10, color: '#64748b', fontWeight: '800', letterSpacing: '0.5px' }}>AUDIT LOG & JEJAK REKAM APPROVAL</div>
             <h2 style={{ fontSize: 16, marginTop: 2 }}>📜 Histori Perubahan & Aktor Log — {selectedParamLog.nama}</h2>
           </div>
           <button style={styles.closeBtn} onClick={onClose}>✕</button>
@@ -25,10 +26,10 @@ export default function ParamLogModal({
           <div style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '10px', padding: '16px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <div style={{ fontSize: 13, fontWeight: 'bold', color: '#0f172a' }}>
-                Jejak Audit Parameter: {selectedParamLog.nama} ({selectedParamLog.kategori})
+                Jejak Audit Parameter: {selectedParamLog.nama} ({getCategoryAbbr(selectedParamLog.kategori)})
               </div>
               <div style={{ fontSize: 12, color: '#475569', marginTop: 2 }}>
-                Merekam secara transparan riwayat permohonan rate oleh Analis (Maker), verifikasi Kabid (Checker), serta pengesahan akhir Kadiv Aktuaria (Approver).
+                Merekam secara transparan riwayat permohonan rate oleh Analis Aktuaria, verifikasi Kabid Aktuaria, serta pengesahan akhir Kadiv Aktuaria.
               </div>
             </div>
             <div style={{ display: 'flex', gap: '8px' }}>
@@ -44,7 +45,7 @@ export default function ParamLogModal({
                 <tr style={styles.thRow}>
                   <th style={styles.th}>WAKTU (TIMESTAMP)</th>
                   <th style={styles.th}>PERUBAHAN NILAI</th>
-                  <th style={styles.th}>DIAJUKAN OLEH (MAKER)</th>
+                  <th style={styles.th}>DIAJUKAN OLEH</th>
                   <th style={styles.th}>DISETUJUI OLEH (KABID / KADIV)</th>
                   <th style={styles.th}>PERIODE & SK DIREKSI</th>
                   <th style={{ ...styles.th, textAlign: 'center' }}>STATUS</th>
@@ -63,7 +64,7 @@ export default function ParamLogModal({
                       {/* Timestamp */}
                       <td style={{ ...styles.td, whiteSpace: 'nowrap' }}>
                         <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#334155' }}>
-                          ⏱️ {log.timestamp}
+                          ⏱️ {formatDateDDMMYY(log.timestamp)}
                         </span>
                         <div style={{ fontSize: '10px', color: '#64748b', marginTop: '2px' }}>
                           {log.tipeAksi || 'Penyesuaian Rate'}
@@ -91,7 +92,7 @@ export default function ParamLogModal({
                           </span>
                           {log.tglPengajuan && (
                             <span style={{ fontSize: '10px', color: '#64748b' }}>
-                              Tgl: {log.tglPengajuan}
+                              Tgl: {formatDateDDMMYY(log.tglPengajuan)}
                             </span>
                           )}
                         </div>
@@ -105,7 +106,7 @@ export default function ParamLogModal({
                           </span>
                           {log.tglApproval && (
                             <span style={{ fontSize: '10px', color: '#64748b' }}>
-                              Tgl: {log.tglApproval}
+                              Tgl: {formatDateDDMMYY(log.tglApproval)}
                             </span>
                           )}
                         </div>
@@ -114,11 +115,16 @@ export default function ParamLogModal({
                       {/* Periode & SK */}
                       <td style={styles.td}>
                         <div style={{ fontSize: '11px', color: '#1e293b', fontWeight: '600' }}>
-                          📅 {log.tglMulai} s.d. {log.tglSelesai}
+                          📅 {formatDateDDMMYY(log.tglMulai)} s.d. {formatDateDDMMYY(log.tglSelesai)}
                         </div>
                         <div style={{ fontSize: '11px', color: '#475569', marginTop: '2px', maxWidth: '200px' }}>
                           📜 {log.landasan}
                         </div>
+                        {log.catatan && (
+                          <div style={{ fontSize: '10px', color: '#64748b', marginTop: '3px', fontStyle: 'italic', maxWidth: '220px' }}>
+                            💬 {log.catatan}
+                          </div>
+                        )}
                       </td>
 
                       {/* Status */}

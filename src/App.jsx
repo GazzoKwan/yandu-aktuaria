@@ -12,7 +12,7 @@ import {
   getSkorsingStatus,
   calculateEffectiveSkorsingMonths
 } from './utils/actuaryCalculator';
-import { formatMkgDisplay } from './utils/formatters';
+import { formatMkgDisplay, formatDateDDMMYY } from './utils/formatters';
 
 // Styles
 import { styles } from './styles/themeStyles';
@@ -163,11 +163,11 @@ export default function App() {
       if (activePage === 'approvalParameter') {
         setActivePage('parameterAktuaria');
       }
-      addToast('📝 Hak Akses Diperbarui: Analis Aktuaria (Maker — Pembuat Usulan Perubahan Rate)');
+      addToast('📝 Hak Akses Diperbarui: Analis Aktuaria (Pengusul Perubahan Rate Parameter)');
     } else if (newRole === 'AKTUARIA_CHECKER') {
-      addToast('🔍 Hak Akses Diperbarui: Kabid Aktuaria (Checker — Verifikasi Usulan Tahap 1)');
+      addToast('🔍 Hak Akses Diperbarui: Kabid Aktuaria (Akses Lihat Parameter)');
     } else if (newRole === 'AKTUARIA_APPROVER') {
-      addToast('🛡️ Hak Akses Diperbarui: Kadiv Aktuaria (Approver — Pengesahan Final Tahap 2)');
+      addToast('🛡️ Hak Akses Diperbarui: Kadiv Aktuaria (Akses Lihat Parameter)');
     } else {
       addToast('🛡️ Hak Akses Diperbarui: Divisi Aktuaria');
     }
@@ -335,19 +335,23 @@ export default function App() {
     if (!selectedParam) return;
 
     // Guard: Jika parameter sedang dalam proses persetujuan (terkunci), tolak perubahan baru
-    const existingProposal = pendingApprovals.find(p => p.paramId === selectedParam.id);
-    if (existingProposal) {
+    const hasActiveProposal = pendingApprovals.find(p => p.paramId === selectedParam.id);
+
+    if (userRole === 'AKTUARIA_CHECKER' || userRole === 'AKTUARIA_APPROVER') {
+      addToast('⚠️ Role Kabid dan Kadiv hanya memiliki akses untuk melihat parameter (tidak dapat merubah).');
+      return;
+    }
+
+    if (hasActiveProposal) {
       alert("Parameter ini sedang memiliki usulan perubahan yang berstatus Pending Approval (Terkunci). Usulan baru tidak dapat diajukan sampai proses persetujuan usulan sebelumnya selesai.");
       return;
     }
 
     const rateVal = parseFloat(newRatePersen) || 0;
     const activeRate = selectedParam.history.find(h => h.status === 'AKTIF') || selectedParam.history[0];
-    const timestampNow = new Date().toLocaleString('id-ID');
+    const timestampNow = formatDateDDMMYY(new Date());
 
     let makerName = 'Ratna Meilani (Analis Aktuaria)';
-    if (userRole === 'AKTUARIA_CHECKER') makerName = 'Budi Santoso (Kabid Aktuaria)';
-    if (userRole === 'AKTUARIA_APPROVER') makerName = 'Dr. Hendra, FSAI (Kadiv Aktuaria)';
 
     const newProposal = {
       id: Date.now(),
@@ -358,8 +362,8 @@ export default function App() {
         ? `${activeRate?.persen || 0}% (Peserta) / ${Math.max(0, 100 - (activeRate?.persen || 0))}% (Risiko)` 
         : `${activeRate?.persen || 0} %`,
       nilaiBaru: rateVal,
-      tglMulai: newRateTglMulai,
-      tglSelesai: newRateTglSelesai,
+      tglMulai: formatDateDDMMYY(newRateTglMulai),
+      tglSelesai: formatDateDDMMYY(newRateTglSelesai),
       landasan: newRateLandasan || "SK Penyesuaian Parameter Aktuaria",
       catatanPengajuan: newRateCatatan || "Usulan penyesuaian berkala kajian aktuaria",
       diajukanOleh: makerName,
@@ -387,7 +391,7 @@ export default function App() {
     const proposal = pendingApprovals.find(p => p.id === proposalId);
     if (!proposal) return;
 
-    const timestampNow = new Date().toLocaleString('id-ID');
+    const timestampNow = formatDateDDMMYY(new Date());
     const rateVal = proposal.nilaiBaru;
     const actorName = userRole === 'AKTUARIA_CHECKER' 
       ? 'Budi Santoso, M.Act (Kabid Aktuaria)' 
@@ -396,8 +400,8 @@ export default function App() {
     const newRateObj = {
       id: Date.now(),
       persen: rateVal,
-      tglMulai: proposal.tglMulai,
-      tglSelesai: proposal.tglSelesai,
+      tglMulai: formatDateDDMMYY(proposal.tglMulai),
+      tglSelesai: formatDateDDMMYY(proposal.tglSelesai),
       diubahOleh: `${proposal.diajukanOleh} (Disetujui: ${actorName})`,
       landasan: proposal.landasan,
       status: "AKTIF"
@@ -422,7 +426,7 @@ export default function App() {
       namaParam: proposal.namaParam,
       timestamp: timestampNow,
       diajukanOleh: proposal.diajukanOleh,
-      tglPengajuan: proposal.tglPengajuan,
+      tglPengajuan: formatDateDDMMYY(proposal.tglPengajuan),
       diverifikasiOleh: actorName,
       tglVerifikasi: timestampNow,
       disetujuiOleh: actorName,
@@ -431,8 +435,8 @@ export default function App() {
       nilaiBaru: proposal.paramId === 4 
         ? `${rateVal} % (Peserta) / ${risikoCalculated} % (Risiko)` 
         : `${rateVal} %`,
-      tglMulai: proposal.tglMulai,
-      tglSelesai: proposal.tglSelesai,
+      tglMulai: formatDateDDMMYY(proposal.tglMulai),
+      tglSelesai: formatDateDDMMYY(proposal.tglSelesai),
       landasan: proposal.landasan,
       catatan: catatan || "Disetujui dan diberlakukan secara resmi",
       tipeAksi: `Persetujuan Parameter (${actorName.includes('Kabid') ? 'Kabid Aktuaria' : 'Kadiv Aktuaria'})`,
@@ -451,22 +455,22 @@ export default function App() {
     const proposal = pendingApprovals.find(p => p.id === proposalId);
     if (!proposal) return;
 
-    const timestampNow = new Date().toLocaleString('id-ID');
+    const timestampNow = formatDateDDMMYY(new Date());
     const rejectLogObj = {
       id: Date.now(),
       paramId: proposal.paramId,
       namaParam: proposal.namaParam,
       timestamp: timestampNow,
       diajukanOleh: proposal.diajukanOleh,
-      tglPengajuan: proposal.tglPengajuan,
+      tglPengajuan: formatDateDDMMYY(proposal.tglPengajuan),
       diverifikasiOleh: rejectedByRole.includes('Kabid') ? `Ditolak oleh ${rejectedByRole}` : (proposal.diverifikasiOleh || '-'),
-      tglVerifikasi: proposal.tglVerifikasi || timestampNow,
+      tglVerifikasi: formatDateDDMMYY(proposal.tglVerifikasi || timestampNow),
       disetujuiOleh: rejectedByRole.includes('Kadiv') ? `Ditolak oleh ${rejectedByRole}` : null,
       tglApproval: rejectedByRole.includes('Kadiv') ? timestampNow : null,
       nilaiLama: proposal.nilaiLama,
       nilaiBaru: `${proposal.nilaiBaru} % (Ditolak)`,
-      tglMulai: proposal.tglMulai,
-      tglSelesai: proposal.tglSelesai,
+      tglMulai: formatDateDDMMYY(proposal.tglMulai),
+      tglSelesai: formatDateDDMMYY(proposal.tglSelesai),
       landasan: proposal.landasan,
       catatan: `Penolakan oleh ${rejectedByRole}: "${alasan}"`,
       tipeAksi: `Penolakan Usulan (${rejectedByRole})`,
@@ -616,7 +620,7 @@ export default function App() {
             />
           )}
 
-          {activePage === 'reportKU' && (userRole.startsWith('AKTUARIA') || userRole === 'AKTUARIA') && (
+          {activePage === 'reportKU' && (
             <ReportKuView 
               filterKuOpen={filterKuOpen}
               setFilterKuOpen={setFilterKuOpen}
@@ -638,7 +642,7 @@ export default function App() {
             />
           )}
 
-          {activePage === 'parameterAktuaria' && (userRole.startsWith('AKTUARIA') || userRole === 'AKTUARIA') && (
+          {activePage === 'parameterAktuaria' && (
             <ParameterAktuariaView 
               actuaryParams={actuaryParams}
               setSelectedParamId={setSelectedParamId}
@@ -649,11 +653,28 @@ export default function App() {
             />
           )}
 
-          {activePage === 'approvalParameter' && (userRole === 'AKTUARIA_CHECKER' || userRole === 'AKTUARIA_APPROVER' || userRole === 'AKTUARIA') && (
+          {activePage === 'approvalParameter' && (
             <ParameterApprovalListView 
               pendingApprovals={pendingApprovals}
               onOpenApprovalModal={(id) => setSelectedApprovalId(id)}
               userRole={userRole}
+            />
+          )}
+
+          {/* Fallback to Data Peserta if activePage is invalid */}
+          {!['dataPeserta', 'reportHutang', 'reportPenyelesaian', 'reportKU', 'parameterAktuaria', 'approvalParameter'].includes(activePage) && (
+            <DataPesertaView 
+              searchVal={searchVal}
+              setSearchVal={setSearchVal}
+              filterKlaim={filterKlaim}
+              setFilterKlaim={setFilterKlaim}
+              userRole={userRole}
+              filteredClaims={filteredClaims}
+              rateManfaatPeserta={rateManfaatPeserta}
+              setSelectedClaimId={setSelectedClaimId}
+              setModalTab={setModalTab}
+              handleExportDataPesertaPdf={handleExportDataPesertaPdf}
+              handleExportDataPesertaExcel={handleExportDataPesertaExcel}
             />
           )}
         </main>
@@ -734,6 +755,7 @@ export default function App() {
       <ParamManageModal 
         selectedParam={selectedParam}
         pendingApprovals={pendingApprovals}
+        userRole={userRole}
         onClose={() => setSelectedParamId(null)}
         onOpenAddRate={() => setShowAddRateModal(true)}
         onOpenLog={(paramId) => setSelectedParamLogId(paramId)}

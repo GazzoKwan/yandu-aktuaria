@@ -5,9 +5,9 @@ export default function Header({ userRole, handleRoleChange, searchVal, setSearc
   const getRoleLabel = (role) => {
     switch(role) {
       case 'CSO': return 'CSO KANTOR CABANG';
-      case 'AKTUARIA_MAKER': return 'ANALIS AKTUARIA (MAKER)';
-      case 'AKTUARIA_CHECKER': return 'KABID AKTUARIA (CHECKER)';
-      case 'AKTUARIA_APPROVER': return 'KADIV AKTUARIA (FINAL APPROVER)';
+      case 'AKTUARIA_MAKER': return 'ANALIS AKTUARIA';
+      case 'AKTUARIA_CHECKER': return 'KABID AKTUARIA';
+      case 'AKTUARIA_APPROVER': return 'KADIV AKTUARIA';
       default: return 'DIVISI AKTUARIA';
     }
   };
@@ -55,9 +55,9 @@ export default function Header({ userRole, handleRoleChange, searchVal, setSearc
             onChange={(e) => handleRoleChange(e.target.value)}
           >
             <option value="CSO">CSO Kancab</option>
-            <option value="AKTUARIA_MAKER">Analis Aktuaria (Maker)</option>
-            <option value="AKTUARIA_CHECKER">Kabid Aktuaria (Checker)</option>
-            <option value="AKTUARIA_APPROVER">Kadiv Aktuaria (Approver)</option>
+            <option value="AKTUARIA_MAKER">Analis Aktuaria</option>
+            <option value="AKTUARIA_CHECKER">Kabid Aktuaria</option>
+            <option value="AKTUARIA_APPROVER">Kadiv Aktuaria</option>
           </select>
         </div>
         <div style={{ ...styles.userAvatar, background: avatarInfo.bg }}>
